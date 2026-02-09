@@ -11,7 +11,7 @@ export default function Home() {
   const router = useRouter();
 
   return (
-    <Screen style={styles.safe}>
+    <Screen style={{ backgroundColor: "#070A12" }} contentStyle={{ backgroundColor: "#070A12" }}>
       {/* nền gradient nhiều lớp cho có chiều sâu */}
       <LinearGradient
         colors={["#050810", "#0B1230", "#160A22"]}

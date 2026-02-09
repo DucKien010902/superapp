@@ -20,14 +20,12 @@ export default function ContactTabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: "#111827",
         tabBarInactiveTintColor: "#6B7280",
-
         tabBarBackground: () => (
           <View style={{ flex: 1 }}>
             <View style={{ flex: 1, backgroundColor: tabWhite }} />
             <View style={{ height: bottomInset, backgroundColor: bottomBlack }} />
           </View>
         ),
-
         tabBarStyle: {
           height: baseHeight + topPad + bottomInset,
           paddingTop: topPad,
@@ -39,41 +37,53 @@ export default function ContactTabsLayout() {
           right: 0,
           bottom: 0,
         },
-
         tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
       }}
     >
-      <Tabs.Screen
-        name="groups"
-        options={{
-          title: "Nhóm",
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? "people" : "people-outline"} size={size} color={color} />
-          ),
-        }}
-      />
 
+      {/* ✅ đổi contacts -> index (tab danh bạ) */}
       <Tabs.Screen
         name="contacts"
         options={{
           title: "Liên hệ",
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? "person" : "person-outline"} size={size} color={color} />
+            <Ionicons
+            name={focused ? "person" : "person-outline"}
+            size={size}
+            color={color}
+            />
           ),
         }}
       />
+<Tabs.Screen
+  name="groups"
+  options={{
+    title: "Nhóm",
+    tabBarIcon: ({ color, size, focused }) => (
+      <Ionicons
+        name={focused ? "people" : "people-outline"}
+        size={size}
+        color={color}
+      />
+    ),
+  }}
+/>
 
       <Tabs.Screen
         name="profile"
         options={{
           title: "Cá nhân",
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? "person-circle" : "person-circle-outline"} size={size} color={color} />
+            <Ionicons
+              name={focused ? "person-circle" : "person-circle-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
 
-      {/* ẩn detail khỏi tab */}
+      {/* ✅ hidden routes: để options={{ href: null }} OK, nhưng phải đúng tên file */}
       <Tabs.Screen name="group/[id]" options={{ href: null }} />
       <Tabs.Screen name="user/[id]" options={{ href: null }} />
       <Tabs.Screen name="chat/[conversationId]" options={{ href: null }} />

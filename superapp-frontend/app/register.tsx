@@ -6,17 +6,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 
 function normalizePhone(input: string) {
-  // chỉ giữ số
   return String(input || "").replace(/\D/g, "");
 }
 
@@ -122,33 +121,41 @@ function PrimaryButton({
         {loading ? (
           <ActivityIndicator />
         ) : (
-          <Ionicons name="log-in-outline" size={18} color="white" />
+          <Ionicons name="person-add-outline" size={18} color="white" />
         )}
         <Text style={{ color: "white", fontWeight: "900", fontSize: 15 }}>
-          {loading ? "Đang đăng nhập..." : title}
+          {loading ? "Đang tạo tài khoản..." : title}
         </Text>
       </LinearGradient>
     </Pressable>
   );
 }
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const { signIn, reset } = useAuth();
   const router = useRouter();
 
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
   const canSubmit = useMemo(() => {
-    const p = normalizePhone(phone);
-    // VN thường 10 số bắt đầu 0 hoặc 9 số (không nhập 0). Bạn có thể nới lỏng nếu muốn.
-    return p.length >= 9 && password.length >= 1 && !busy;
-  }, [phone, password, busy]);
+    if (busy) return false;
 
-  const onLogin = async () => {
+    const p = normalizePhone(phone);
+    if (!name.trim()) return false;
+    if (p.length < 9) return false; // nới lỏng/siết tuỳ bạn
+    if (password.length < 6) return false;
+    if (password !== password2) return false;
+
+    return true;
+  }, [name, phone, password, password2, busy]);
+
+  const onRegister = async () => {
     if (!canSubmit) return;
     setErr("");
     setBusy(true);
@@ -156,9 +163,10 @@ export default function LoginScreen() {
     try {
       await reset();
 
-      const r = await http<{ token: string }>("/api/auth/login", null, {
+      const r = await http<{ token: string }>("/api/auth/register", null, {
         method: "POST",
         body: JSON.stringify({
+          name: name.trim(),
           phone: normalizePhone(phone),
           password,
         }),
@@ -167,11 +175,18 @@ export default function LoginScreen() {
       await signIn(r.token);
       router.replace("/");
     } catch (e: any) {
-      setErr(e?.message || "Đăng nhập thất bại");
+      setErr(e?.message || "Đăng ký thất bại");
     } finally {
       setBusy(false);
     }
   };
+
+  const passHint =
+    password.length > 0 && password.length < 6
+      ? "Mật khẩu tối thiểu 6 ký tự."
+      : password2.length > 0 && password !== password2
+      ? "Mật khẩu nhập lại chưa khớp."
+      : "";
 
   return (
     <Screen top={0} bottom={0}>
@@ -186,10 +201,10 @@ export default function LoginScreen() {
           style={{ paddingTop: 56, paddingBottom: 26, paddingHorizontal: 18 }}
         >
           <Text style={{ color: "white", fontSize: 26, fontWeight: "900" }}>
-            Chào mừng bạn
+            Tạo tài khoản
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 6 }}>
-            Đăng nhập để tiếp tục sử dụng SuperApp
+            Đăng ký nhanh để bắt đầu sử dụng.
           </Text>
         </LinearGradient>
 
@@ -212,13 +227,21 @@ export default function LoginScreen() {
             }}
           >
             <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
-              Đăng nhập
+              Đăng ký
             </Text>
             <Text style={{ marginTop: 6, color: "#6B7280" }}>
-              Nhập số điện thoại và mật khẩu của bạn.
+              Điền thông tin để tạo tài khoản mới.
             </Text>
 
             <View style={{ marginTop: 14, gap: 10 }}>
+              <Field
+                icon="person-outline"
+                placeholder="Họ và tên"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+              />
+
               <Field
                 icon="call-outline"
                 placeholder="Số điện thoại"
@@ -229,12 +252,26 @@ export default function LoginScreen() {
 
               <Field
                 icon="lock-closed-outline"
-                placeholder="Mật khẩu"
+                placeholder="Mật khẩu (>= 6 ký tự)"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
               />
+
+              <Field
+                icon="repeat-outline"
+                placeholder="Nhập lại mật khẩu"
+                value={password2}
+                onChangeText={setPassword2}
+                secureTextEntry
+              />
             </View>
+
+            {passHint ? (
+              <Text style={{ marginTop: 10, color: "#B45309", fontWeight: "700" }}>
+                {passHint}
+              </Text>
+            ) : null}
 
             {err ? (
               <View
@@ -253,8 +290,8 @@ export default function LoginScreen() {
 
             <View style={{ marginTop: 14 }}>
               <PrimaryButton
-                title="Đăng nhập"
-                onPress={onLogin}
+                title="Tạo tài khoản"
+                onPress={onRegister}
                 disabled={!canSubmit}
                 loading={busy}
               />
@@ -268,15 +305,15 @@ export default function LoginScreen() {
                 gap: 6,
               }}
             >
-              <Text style={{ color: "#6B7280" }}>Chưa có tài khoản?</Text>
-              <Pressable onPress={() => router.push("/register")} disabled={busy}>
-                <Text style={{ color: "#111827", fontWeight: "900" }}>Đăng ký</Text>
+              <Text style={{ color: "#6B7280" }}>Đã có tài khoản?</Text>
+              <Pressable onPress={() => router.replace("/login")} disabled={busy}>
+                <Text style={{ color: "#111827", fontWeight: "900" }}>Đăng nhập</Text>
               </Pressable>
             </View>
           </View>
 
           <Text style={{ marginTop: 12, textAlign: "center", color: "#9CA3AF" }}>
-            Bằng cách đăng nhập, bạn đồng ý với điều khoản sử dụng.
+            Tạo tài khoản nghĩa là bạn đồng ý với điều khoản sử dụng.
           </Text>
         </View>
       </KeyboardAvoidingView>

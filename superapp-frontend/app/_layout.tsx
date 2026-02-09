@@ -1,5 +1,5 @@
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -8,13 +8,17 @@ function AuthGate() {
   const { token, loading } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const navState = useRootNavigationState();
 
   useEffect(() => {
+    if (!navState?.key) return; // ✅ chưa mount navigator thì đừng navigate
     if (loading) return;
 
     const first = segments[0];
-    const isRoot = first == null;       // ✅ thay vì segments.length === 0
-    const isAuthRoute = first === "login";
+    const isRoot = first == null;
+
+    // ✅ cho phép login + register
+    const isAuthRoute = first === "login" || first === "register";
 
     if (isRoot) {
       router.replace(token ? "/" : "/login");
@@ -30,10 +34,11 @@ function AuthGate() {
       router.replace("/");
       return;
     }
-  }, [token, loading, segments, router]);
+  }, [navState?.key, token, loading, segments]);
 
   return null;
 }
+
 
 
 export default function RootLayout() {

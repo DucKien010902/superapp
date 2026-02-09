@@ -35,6 +35,17 @@ export async function fetchMe(token: string): Promise<UserPublic> {
   const r = await http<{ user: UserPublic }>("/api/users/me", token);
   return r.user;
 }
+export type UpdateMePayload = {
+  profile?: Partial<UserPublic["profile"]>;
+};
+
+export async function updateMe(token: string, payload: UpdateMePayload): Promise<UserPublic> {
+  const r = await http<{ user: UserPublic }>("/api/users/me", token, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return r.user;
+}
 
 export async function fetchUserById(
   token: string,
