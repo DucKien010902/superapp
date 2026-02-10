@@ -4,10 +4,10 @@ import { NoteRepo } from "@/lib/note/repo";
 import type { Note } from "@/lib/note/types";
 import * as Haptics from "expo-haptics";
 import {
-    useFocusEffect,
-    useLocalSearchParams,
-    useNavigation,
-    useRouter,
+  useFocusEffect,
+  useLocalSearchParams,
+  useNavigation,
+  useRouter,
 } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -307,8 +307,8 @@ const styles = StyleSheet.create({
   },
   hTitle: { flex: 1, color: "white", fontSize: 16, fontWeight: "900" },
   iconBtn: {
-    width: 40,
-    height: 40,
+    width: 50,
+    height: 50,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: "rgba(255,255,255,0.92)",
-    fontSize: 14,
+    fontSize: 18,
     lineHeight: 20,
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,

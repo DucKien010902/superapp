@@ -5,7 +5,157 @@ import Friendship from "../models/Friendship.model.js";
 import { pickUserPublic } from "../utils/pickUserPublic.js";
 
 const router = Router();
+function normPhone(input = "") {
+  // chỉ giữ số
+  const digits = String(input).replace(/[^\d]/g, "");
+  // bạn có thể tùy biến normalize kiểu VN:
+  // - +84xxxx -> 0xxxx
+  // - 84xxxx -> 0xxxx
+  if (digits.startsWith("84") && digits.length >= 10) return "0" + digits.slice(2);
+  if (digits.startsWith("0084") && digits.length >= 12) return "0" + digits.slice(4);
+  return digits;
+}
 
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * GET /api/users?q=...&limit=5&skip=0
+ * Search toàn hệ thống theo:
+ * - displayName (profile.displayName)
+ * - username (profile.username)
+ * - phone (profile.phone / phoneNormalized)
+ *
+ * Trả về items (UserPublic[])
+ */
+router.get("/", async (req, res, next) => {
+  try {
+    const meId = String(req.user?.id || "");
+    const qRaw = String(req.query.q || "").trim();
+
+    const limit = Math.min(Math.max(parseInt(req.query.limit || "20", 10) || 20, 1), 50);
+    const skip = Math.max(parseInt(req.query.skip || "0", 10) || 0, 0);
+
+    if (!qRaw) return res.json({ items: [] });
+
+    const q = qRaw.slice(0, 64); // tránh query quá dài
+    const qPhone = normPhone(q);
+    const isPhoneQuery = /^\d{3,}$/.test(qPhone); // >=3 số thì coi là search phone
+
+    const qEsc = escapeRegex(q);
+    const qRe = new RegExp(qEsc, "i");
+
+    // phone: ưu tiên match prefix / exact hơn
+    const phonePrefixRe = isPhoneQuery ? new RegExp("^" + escapeRegex(qPhone)) : null;
+
+    // Match condition
+    const or = [
+      { "profile.displayName": { $regex: qRe } },
+      { "profile.username": { $regex: qRe } },
+      { "profile.phone": { $regex: qRe } },
+    ];
+
+    if (isPhoneQuery) {
+      or.push({ phone: { $regex: qRe } });
+      or.push({ phoneNormalized: { $regex: qRe } });
+    }
+
+    // Relevance scoring (đơn giản nhưng hiệu quả)
+    // - phoneNormalized prefix: score 100
+    // - phoneNormalized contains: score 70
+    // - displayName startsWith: score 60
+    // - username startsWith: score 50
+    // - displayName contains: score 30
+    // - username contains: score 20
+    const pipeline = [
+      {
+        $match: {
+          isActive: true,
+          ...(meId ? { _id: { $ne: meId } } : {}),
+          $or: or,
+        },
+      },
+      {
+        $addFields: {
+          _displayName: { $ifNull: ["$profile.displayName", ""] },
+          _username: { $ifNull: ["$profile.username", ""] },
+          _phoneN: { $ifNull: ["$phoneNormalized", ""] },
+        },
+      },
+      {
+        $addFields: {
+          score: {
+            $add: [
+              // phone scoring
+              ...(isPhoneQuery
+                ? [
+                    {
+                      $cond: [
+                        { $regexMatch: { input: "$_phoneN", regex: phonePrefixRe } },
+                        100,
+                        0,
+                      ],
+                    },
+                    {
+                      $cond: [
+                        { $regexMatch: { input: "$_phoneN", regex: new RegExp(escapeRegex(qPhone)) } },
+                        70,
+                        0,
+                      ],
+                    },
+                  ]
+                : []),
+
+              // displayName startsWith / contains
+              {
+                $cond: [
+                  {
+                    $regexMatch: {
+                      input: "$_displayName",
+                      regex: new RegExp("^" + qEsc, "i"),
+                    },
+                  },
+                  60,
+                  0,
+                ],
+              },
+              {
+                $cond: [{ $regexMatch: { input: "$_displayName", regex: qRe } }, 30, 0],
+              },
+
+              // username startsWith / contains
+              {
+                $cond: [
+                  {
+                    $regexMatch: {
+                      input: "$_username",
+                      regex: new RegExp("^" + qEsc, "i"),
+                    },
+                  },
+                  50,
+                  0,
+                ],
+              },
+              {
+                $cond: [{ $regexMatch: { input: "$_username", regex: qRe } }, 20, 0],
+              },
+            ],
+          },
+        },
+      },
+      { $sort: { score: -1, updatedAt: -1, createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    const docs = await User.aggregate(pipeline);
+
+    res.json({ items: docs.map(pickUserPublic) });
+  } catch (e) {
+    next(e);
+  }
+});
 /**
  * GET /api/users/me
  */

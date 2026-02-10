@@ -6,13 +6,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 function normalizePhone(input: string) {
@@ -192,13 +192,13 @@ export default function RegisterScreen() {
     <Screen top={0} bottom={0}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1, backgroundColor: "#0B1220" }}
+        style={{ flex: 1, backgroundColor: "#183776" }}
       >
         <LinearGradient
-          colors={["#111827", "#0B1220", "#0B1220"]}
+          colors={["#183776", "#183776", "#183776"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ paddingTop: 56, paddingBottom: 26, paddingHorizontal: 18 }}
+          style={{ paddingTop: 56, paddingBottom: 26, paddingHorizontal: 18, margin:'auto' }}
         >
           <Text style={{ color: "white", fontSize: 26, fontWeight: "900" }}>
             Tạo tài khoản

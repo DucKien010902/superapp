@@ -42,8 +42,8 @@ const styles = StyleSheet.create({
   title: { color: "white", fontSize: 28, fontWeight: "900" },
   sub: { marginTop: 4, color: "rgba(255,255,255,0.65)", fontSize: 13 },
   iconBtn: {
-    width: 40,
-    height: 40,
+    width: 60,
+    height: 60,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -51,5 +51,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  icon: { color: "white", fontSize: 18, fontWeight: "900" },
+  icon: { color: "white", fontSize: 30, fontWeight: "900" },
 });

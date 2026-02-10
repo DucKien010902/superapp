@@ -159,4 +159,13 @@ export const NoteRepo = {
     const r = db.getFirstSync<{ c: number }>(`SELECT COUNT(*) as c FROM notes WHERE deletedAt IS NULL`);
     return r?.c ?? 0;
   },
+  deleteForeverMany(ids: string[]) {
+    if (!ids.length) return;
+    const placeholders = ids.map(() => "?").join(",");
+    db.runSync(`DELETE FROM notes WHERE id IN (${placeholders})`, ids);
+  },
+
+  emptyTrash() {
+    db.runSync(`DELETE FROM notes WHERE deletedAt IS NOT NULL`);
+  },
 };

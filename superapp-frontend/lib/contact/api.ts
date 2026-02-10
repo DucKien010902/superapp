@@ -54,12 +54,20 @@ export async function fetchUserById(
   return http(`/api/users/${id}`, token);
 }
 
-export async function searchUsers(token: string, q: string): Promise<UserPublic[]> {
+export async function searchUsers(
+  token: string,
+  q: string,
+  opts?: { limit?: number; skip?: number }
+): Promise<UserPublic[]> {
   const qs = new URLSearchParams();
   if (q?.trim()) qs.set("q", q.trim());
+  if (opts?.limit != null) qs.set("limit", String(opts.limit));
+  if (opts?.skip != null) qs.set("skip", String(opts.skip));
+
   const r = await http<{ items: UserPublic[] }>(`/api/users?${qs.toString()}`, token);
   return r.items;
 }
+
 
 // ===== FRIENDS
 export async function fetchFriends(token: string): Promise<Friend[]> {

@@ -18,7 +18,7 @@ export default function ContactTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#111827",
+        tabBarActiveTintColor: "#1340a1",
         tabBarInactiveTintColor: "#6B7280",
         tabBarBackground: () => (
           <View style={{ flex: 1 }}>
