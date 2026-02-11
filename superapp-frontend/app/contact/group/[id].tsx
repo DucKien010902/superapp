@@ -7,13 +7,17 @@ import {
   fetchGroupById,
   fetchGroupMembers,
   fetchMe,
+  openGroupChat,
   removeGroupMember,
 } from "@/lib/contact/api";
 import type { Friend, Group } from "@/lib/contact/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, Text, TextInput, View } from "react-native";
+
+// ...
+const router = useRouter();
 
 type TabKey = "about" | "members" | "media" | "chat";
 
@@ -70,7 +74,7 @@ function TabPill({
         paddingVertical: 10,
         paddingHorizontal: 8,
         borderRadius: 999,
-        backgroundColor: active ? "#111827" : "transparent",
+        backgroundColor: active ? "#3b6dd9" : "transparent",
       }}
     >
       <Ionicons name={icon} size={16} color={active ? "white" : "#6B7280"} />
@@ -126,6 +130,7 @@ function SectionTitle({ icon, title }: { icon: any; title: string }) {
 export default function GroupDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuth();
+  
 
   const [tab, setTab] = useState<TabKey>("about");
 
@@ -140,6 +145,9 @@ export default function GroupDetail() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQ, setPickerQ] = useState("");
   const [busyAdd, setBusyAdd] = useState(false);
+    const groupId = String(id || ""); // ✅ dùng id làm groupId
+  const groupName = group?.name || "Nhóm";
+  const groupAvatar = (group as any)?.avatarUrl || ""; 
 
   const reload = async () => {
     if (!token || !id) return;
@@ -581,34 +589,53 @@ export default function GroupDetail() {
           <Card>
             <View style={{ padding: 14 }}>
               <Text style={{ fontSize: 12, color: "#6B7280" }}>
-                (UI trước, logic sau: tạo conversationId cho group, fetch messages, send message, unread, typing…)
+                (Các thành viên cùng nhóm có thể liên lạc qua nhóm chat chung tại đây)
               </Text>
 
               <View style={{ marginTop: 10, padding: 12, borderRadius: 14, backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB" }}>
-                <Text style={{ fontSize: 12, color: "#6B7280" }}>Gợi ý routes backend:</Text>
+                <Text style={{ fontSize: 12, color: "#6B7280" }}>Gợi ý:</Text>
                 <Text style={{ marginTop: 6, fontSize: 12, color: "#374151", lineHeight: 18 }}>
-                  • POST /api/messages/group/:groupId{"\n"}
-                  • GET /api/messages/:conversationId{"\n"}
-                  • POST /api/messages/:conversationId
+                  • Tải ảnh{"\n"}
+                  • Tải file{"\n"}
+                  • Xây dựng bộ Icon
                 </Text>
               </View>
             </View>
           </Card>
 
           <Pressable
-            onPress={() => {
-              // TODO: sau này push sang màn chat nhóm
-            }}
-            style={{
-              marginTop: 12,
-              paddingVertical: 12,
-              borderRadius: 14,
-              backgroundColor: "#1877F2",
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ color: "white", fontWeight: "900" }}>Mở chat nhóm</Text>
-          </Pressable>
+  onPress={async () => {
+    if (!token || !groupId) return;
+    try {
+      const r = await openGroupChat(token, groupId);
+      const conversationId = r.conversationId;
+
+      router.push({
+        // ✅ đúng route theo cây thư mục của bạn: app/contact/chat/group.tsx
+        pathname: "/contact/chat/group",
+        params: {
+          conversationId,
+          groupId,
+          groupName: r.group?.name || groupName,
+          groupAvatar: r.group?.avatarUrl || groupAvatar,
+          memberCount: String(r.group?.memberCount || memberCount || ""),
+        },
+      });
+    } catch (e) {
+      console.log(e);
+    }
+  }}
+  style={{
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "#1877F2",
+    alignItems: "center",
+  }}
+>
+  <Text style={{ color: "white", fontWeight: "900" }}>Mở chat nhóm</Text>
+</Pressable>
+
         </View>
       )}
     </Screen>

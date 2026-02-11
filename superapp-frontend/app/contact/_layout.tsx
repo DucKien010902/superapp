@@ -87,6 +87,7 @@ export default function ContactTabsLayout() {
       <Tabs.Screen name="group/[id]" options={{ href: null }} />
       <Tabs.Screen name="user/[id]" options={{ href: null }} />
       <Tabs.Screen name="chat/[conversationId]" options={{ href: null }} />
+      <Tabs.Screen name="chat/group" options={{ href: null }} />
     </Tabs>
   );
 }

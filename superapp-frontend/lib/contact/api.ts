@@ -117,7 +117,14 @@ export async function sendMessage(token: string, conversationId: string, text: s
     body: JSON.stringify({ text }),
   });
 }
-
+export async function openGroupChat(token: string, groupId: string) {
+  return http<{
+    conversationId: string;
+    group?: { id: string; name: string; avatarUrl?: string; memberCount?: number };
+  }>(`/api/messages/group/${groupId}`, token, {
+    method: "POST",
+  });
+}
 // ===== GROUPS
 
 // GET /api/groups  -> { items: Group[] } (backend mới trả id, memberIds, myRole...)

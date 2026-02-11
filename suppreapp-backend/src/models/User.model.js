@@ -36,7 +36,7 @@ const SettingsSchema = new mongoose.Schema(
 const UserSchema = new mongoose.Schema(
   {
     // ✅ auth: dùng phone
-    email: { type: String, default: "", index: true }, // ✅ bỏ required/unique
+    email: { type: String, default: "", }, // ✅ bỏ required/unique
     phone: { type: String, default: "", index: true },
     phoneNormalized: { type: String, unique: true, sparse: true, index: true },
 

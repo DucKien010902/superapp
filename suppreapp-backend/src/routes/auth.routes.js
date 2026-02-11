@@ -48,7 +48,6 @@ router.post("/register", async (req, res, next) => {
     const passwordHash = await bcrypt.hash(String(password), 10);
 
     const user = await User.create({
-  email: "", // giữ trống
   phone: String(phone).trim(),
   phoneNormalized,
   passwordHash,

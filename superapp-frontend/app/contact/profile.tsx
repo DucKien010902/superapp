@@ -285,7 +285,7 @@ export default function ProfileMeScreen() {
                   />
                   <IconBtn
                     icon="log-out-outline"
-                    label="Thoát"
+                    label="Đăng xuất"
                     danger
                     onPress={onLogout}
                   />
@@ -362,7 +362,7 @@ export default function ProfileMeScreen() {
             </View>
 
             {/* ===== Right upload button (requirement) ===== */}
-            <View style={{ position: "absolute", right: 14, bottom: -18 }}>
+            <View style={{ position: "absolute", right: 14, bottom: -18,  display: edit ? "flex" : "none",}}>
               <Pressable
                 onPress={() => setUploadMenuOpen(true)}
                 style={{
