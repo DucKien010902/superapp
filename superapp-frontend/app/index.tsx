@@ -1,91 +1,127 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import {
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import AppIconTile from "@/components/AppIconTile";
 import FolderCard from "@/components/FolderCard";
-import Screen from "@/components/Screen";
 
 export default function Home() {
   const router = useRouter();
 
   return (
-    <Screen style={{ backgroundColor: "#070A12" }} contentStyle={{ backgroundColor: "#070A12" }}>
-      {/* nền gradient nhiều lớp cho có chiều sâu */}
+    <SafeAreaView style={styles.safe}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="transparent"
+        translucent={Platform.OS === "android"}
+      />
+
+      {/* ✅ Nền gradient */}
       <LinearGradient
-        colors={["#050810", "#0B1230", "#160A22"]}
+        colors={["#F8FBFF", "#EAF3FF", "#CFE3FF", "#86B8FF", "#2563EB"]}
+        locations={[0, 0.35, 0.6, 0.82, 1]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 0, y: 1 }}
       />
       <LinearGradient
-        colors={["rgba(124,92,255,0.22)", "transparent", "rgba(59,130,246,0.18)"]}
+        colors={["rgba(255,255,255,0.75)", "transparent", "rgba(15,23,42,0.18)"]}
         style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0.2 }}
-        end={{ x: 1, y: 1 }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
       />
 
-      <View style={styles.container}>
-        {/* Title căn giữa và “hạ xuống” */}
-        <Text style={styles.bigTitle}>Super App</Text>
-
-        {/* Card folder căn giữa */}
-        <View style={styles.folderWrap}>
-          <FolderCard title="Thư mục">
-            <AppIconTile
-              label="Note"
-              icon="document-text-outline"
-              tone="violet"
-              onPress={() => router.push("/note/" as any)}
-            />
-            <AppIconTile
-              label="Contact"
-              icon="people-outline"
-              tone="blue"
-              onPress={() => router.push("/contact/" as any)}
-            />
-          </FolderCard>
+      {/* ✅ Canh giữa toàn bộ cụm */}
+      <View style={styles.centerWrap}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.brandText}>Super App</Text>
+          <Text style={styles.subtitle}>Chọn nhanh ứng dụng bạn cần</Text>
         </View>
 
+        {/* Card + 2 app */}
+        <View style={styles.cardWrap}>
+          <FolderCard title="Ứng dụng">
+            <View style={styles.grid2}>
+              <AppIconTile
+                label="Note"
+                icon="document-text-outline"
+                tone="violet"
+                onPress={() => router.push("/note/" as any)}
+              />
+              <AppIconTile
+                label="Contact"
+                icon="people-outline"
+                tone="blue"
+                onPress={() => router.push("/contact/" as any)}
+              />
+            </View>
+          </FolderCard>
+        </View>
       </View>
-    </Screen>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#050810" },
+  safe: { flex: 1 },
 
-  container: {
+  // ✅ Cụm nằm giữa màn hình
+  centerWrap: {
     flex: 1,
     paddingHorizontal: 18,
-    // ✅ đẩy cụm nội dung xuống và căn giữa
-    justifyContent: "center",
+    paddingTop: Platform.OS === "android" ? 16 : 10,
+    paddingBottom: 16,
+
     alignItems: "center",
-    paddingBottom: 40,
-    gap: 14,
+    justifyContent: "center",
   },
 
-  bigTitle: {
-    textAlign: "center",
-    fontSize: 42,
+  header: {
+    alignItems: "center",
+    marginBottom: 14,
+  },
+
+  brandText: {
+    fontSize: 34,
     fontWeight: "900",
-    color: "rgb(203, 176, 41)",
+    color: "#26538e",
     letterSpacing: 0.2,
-    marginBottom: 6,
   },
 
-  folderWrap: {
+  subtitle: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "rgba(15,23,42,0.70)",
+    textAlign: "center",
+  },
+
+  cardWrap: {
     width: "100%",
-    maxWidth: 420,
+    maxWidth: 460, // ✅ đẹp hơn trên tablet/desktop
+    marginTop: 6,
+  },
+
+  grid2: {
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
   },
 
   hint: {
-    marginTop: 8,
+    marginTop: 14,
     textAlign: "center",
-    color: "rgba(255,255,255,0.55)",
+    color: "rgba(15,23,42,0.55)",
     fontSize: 12,
-    maxWidth: 420,
     lineHeight: 16,
   },
 });

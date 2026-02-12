@@ -143,12 +143,28 @@ router.get("/:conversationId", async (req, res, next) => {
       })
       .lean();
 
-    // trả theo thời gian tăng dần
-    res.json({ items: items.reverse() });
+    // ✅ chuẩn hoá lại output
+    const normalized = items.map((m) => {
+      const senderObj = m.senderId; // sau populate là object user
+      return {
+        ...m,
+        senderId: String(senderObj?._id ?? m.senderId), // ✅ ép về string id
+        sender: senderObj ? {
+          _id: String(senderObj._id),
+          name: senderObj.name,
+          profile: senderObj.profile,
+          avatarUrl: senderObj.avatarUrl,
+          avatar: senderObj.avatar,
+        } : null,
+      };
+    });
+
+    res.json({ items: normalized.reverse() });
   } catch (e) {
     next(e);
   }
 });
+
 
 /**
  * POST /api/messages/:conversationId

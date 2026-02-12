@@ -13,7 +13,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -29,6 +31,26 @@ function vOrDash(v?: string) {
 function formatLocation(loc?: { city?: string; country?: string }) {
   const s = `${loc?.city || ""} ${loc?.country || ""}`.trim();
   return s ? s : "—";
+}
+
+function toTel(phone?: string) {
+  const s = (phone ?? "").trim();
+  if (!s) return "";
+  // giữ lại số và dấu +
+  return s.replace(/[^\d+]/g, "");
+}
+
+async function callPhone(phone?: string) {
+  const p = toTel(phone);
+  if (!p) return;
+
+  const url = `tel:${p}`;
+  const ok = await Linking.canOpenURL(url);
+  if (!ok) {
+    Alert.alert("Không thể gọi", "Thiết bị không hỗ trợ gọi điện.");
+    return;
+  }
+  Linking.openURL(url);
 }
 
 type PreviewKind = "avatar" | "cover";
@@ -72,12 +94,29 @@ export default function UserProfileScreen() {
     // pending outgoing -> Hủy lời mời
     // pending incoming -> Chấp nhận
     // accepted -> Hủy bạn
-    if (rel.status === "accepted") return { text: "Hủy bạn", kind: "unfriend" as const, icon: "person-remove-outline" as const };
+    if (rel.status === "accepted")
+      return {
+        text: "Hủy bạn",
+        kind: "unfriend" as const,
+        icon: "person-remove-outline" as const,
+      };
     if (rel.status === "pending" && rel.direction === "outgoing")
-      return { text: "Hủy lời mời", kind: "cancel" as const, icon: "close-circle-outline" as const };
+      return {
+        text: "Hủy lời mời",
+        kind: "cancel" as const,
+        icon: "close-circle-outline" as const,
+      };
     if (rel.status === "pending" && rel.direction === "incoming")
-      return { text: "Chấp nhận", kind: "accept" as const, icon: "checkmark-circle-outline" as const };
-    return { text: "Kết bạn", kind: "request" as const, icon: "person-add-outline" as const };
+      return {
+        text: "Chấp nhận",
+        kind: "accept" as const,
+        icon: "checkmark-circle-outline" as const,
+      };
+    return {
+      text: "Kết bạn",
+      kind: "request" as const,
+      icon: "person-add-outline" as const,
+    };
   }, [rel]);
 
   const onPrimary = async () => {
@@ -134,6 +173,9 @@ export default function UserProfileScreen() {
       </Screen>
     );
   }
+
+  const phoneRaw = (user?.profile?.phone ?? "").trim();
+  const hasPhone = !!toTel(phoneRaw);
 
   return (
     <Screen top={0} bottom={0}>
@@ -221,9 +263,7 @@ export default function UserProfileScreen() {
                 }}
               >
                 <Ionicons name={cta.icon} size={18} color="white" />
-                <Text style={{ color: "white", fontWeight: "900" }}>
-                  {busy ? "..." : cta.text}
-                </Text>
+                <Text style={{ color: "white", fontWeight: "900" }}>{busy ? "..." : cta.text}</Text>
               </Pressable>
 
               <Pressable
@@ -249,8 +289,14 @@ export default function UserProfileScreen() {
             {/* Quick chips */}
             <View style={{ marginTop: 10, flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
               <Chip icon="location-outline" text={formatLocation(user?.profile?.location)} />
-              <Chip icon="school-outline" text={user?.profile?.education?.trim() ? user!.profile!.education! : "Chưa thêm học vấn"} />
-              <Chip icon="briefcase-outline" text={user?.profile?.work?.trim() ? user!.profile!.work! : "Chưa thêm công việc"} />
+              <Chip
+                icon="school-outline"
+                text={user?.profile?.education?.trim() ? user!.profile!.education! : "Chưa thêm học vấn"}
+              />
+              <Chip
+                icon="briefcase-outline"
+                text={user?.profile?.work?.trim() ? user!.profile!.work! : "Chưa thêm công việc"}
+              />
             </View>
           </View>
         </View>
@@ -265,7 +311,17 @@ export default function UserProfileScreen() {
               <Divider />
               <InfoRow icon="mail-outline" label="Email" value={vOrDash(user?.email)} />
               <Divider />
-              <InfoRow icon="call-outline" label="SĐT" value={vOrDash(user?.profile?.phone)} />
+
+              {/* ✅ SĐT: nổi bật + bấm gọi */}
+              <InfoRow
+                icon="call-outline"
+                label="SĐT"
+                value={vOrDash(user?.profile?.phone)}
+                valueColor={hasPhone ? "#2563EB" : "#111827"}
+                valueUnderline={hasPhone}
+                onPressValue={hasPhone ? () => callPhone(user?.profile?.phone) : undefined}
+              />
+
               <Divider />
               <InfoRow icon="man-outline" label="Giới tính" value={vOrDash(user?.profile?.gender)} />
               <Divider />
@@ -285,13 +341,8 @@ export default function UserProfileScreen() {
               {user?.profile?.links && user.profile.links.length > 0 ? (
                 user.profile.links.map((l, idx) => (
                   <View key={`${idx}-${l.label}-${l.url}`}>
-                    <InfoRow
-                      icon="globe-outline"
-                      label={vOrDash(l.label)}
-                      value={vOrDash(l.url)}
-                    />
-                    {idx !== ((user?.profile?.links?.length ?? 0) - 1) ? <Divider /> : null}
-
+                    <InfoRow icon="globe-outline" label={vOrDash(l.label)} value={vOrDash(l.url)} />
+                    {idx !== (user?.profile?.links?.length ?? 0) - 1 ? <Divider /> : null}
                   </View>
                 ))
               ) : (
@@ -304,7 +355,12 @@ export default function UserProfileScreen() {
         </ScrollView>
 
         {/* ===== Preview modal ===== */}
-        <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
+        <Modal
+          visible={previewOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPreviewOpen(false)}
+        >
           <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.92)" }}>
             <View
               style={{
@@ -404,7 +460,24 @@ function Divider() {
   return <View style={{ height: 1, backgroundColor: "#F3F4F6" }} />;
 }
 
-function InfoRow({ icon, label, value }: { icon: any; label: string; value: string }) {
+/**
+ * ✅ InfoRow hỗ trợ: value bấm được (SĐT), đổi màu, underline
+ */
+function InfoRow({
+  icon,
+  label,
+  value,
+  onPressValue,
+  valueColor,
+  valueUnderline,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  onPressValue?: () => void;
+  valueColor?: string;
+  valueUnderline?: boolean;
+}) {
   return (
     <View style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
       <View
@@ -424,9 +497,34 @@ function InfoRow({ icon, label, value }: { icon: any; label: string; value: stri
 
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 12, color: "#6B7280", fontWeight: "800" }}>{label}</Text>
-        <Text style={{ marginTop: 2, fontSize: 13, color: "#111827", fontWeight: "900" }}>
-          {value}
-        </Text>
+
+        {onPressValue ? (
+          <Pressable onPress={onPressValue} style={({ pressed }) => pressed && { opacity: 0.7 }}>
+            <Text
+              style={{
+                marginTop: 2,
+                fontSize: 13,
+                fontWeight: "900",
+                color: valueColor ?? "#2563EB",
+                textDecorationLine: valueUnderline ? "underline" : "none",
+              }}
+            >
+              {value}
+            </Text>
+          </Pressable>
+        ) : (
+          <Text
+            style={{
+              marginTop: 2,
+              fontSize: 13,
+              color: valueColor ?? "#111827",
+              fontWeight: "900",
+              textDecorationLine: valueUnderline ? "underline" : "none",
+            }}
+          >
+            {value}
+          </Text>
+        )}
       </View>
     </View>
   );

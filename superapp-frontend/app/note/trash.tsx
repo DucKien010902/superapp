@@ -31,10 +31,14 @@ export default function TrashScreen() {
 
   const isSelectMode = selectedCount > 0;
 
+  const selectedList = useMemo(
+    () => Object.keys(selectedIds).filter((k) => selectedIds[k]),
+    [selectedIds]
+  );
+
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = { ...prev, [id]: !prev[id] };
-      // dọn key false để state gọn
       if (!next[id]) delete next[id];
       return next;
     });
@@ -42,10 +46,31 @@ export default function TrashScreen() {
 
   const clearSelection = () => setSelectedIds({});
 
-  const selectedList = useMemo(
-    () => Object.keys(selectedIds).filter((k) => selectedIds[k]),
-    [selectedIds]
-  );
+  const allSelected = useMemo(() => {
+    if (!items.length) return false;
+    return items.every((n) => !!selectedIds[n.id]);
+  }, [items, selectedIds]);
+
+  const toggleSelectAll = () => {
+    if (!items.length) return;
+    setSelectedIds((prev) => {
+      const next: Record<string, boolean> = { ...prev };
+      if (allSelected) {
+        for (const n of items) delete next[n.id];
+        return next;
+      }
+      for (const n of items) next[n.id] = true;
+      return next;
+    });
+  };
+
+  const selectAllAndConfirmDelete = () => {
+    if (!items.length) return;
+    const map: Record<string, boolean> = {};
+    for (const n of items) map[n.id] = true;
+    setSelectedIds(map);          // ✅ chọn hết
+    setConfirmDelete(true);       // ✅ mở confirm
+  };
 
   const deleteSelected = () => {
     if (!selectedList.length) return;
@@ -66,20 +91,29 @@ export default function TrashScreen() {
     <ScreenNote style={styles.screen} contentStyle={{ backgroundColor: "#070A12" }}>
       <TopBar
         title={isSelectMode ? `Đã chọn ${selectedCount}` : "Thùng rác"}
-        subtitle={isSelectMode ? "Chọn để xoá vĩnh viễn / khôi phục" : `${items.length} mục`}
+        subtitle={
+          isSelectMode ? "Chọn để xoá vĩnh viễn / khôi phục" : `${items.length} mục`
+        }
         onMenu={() => (isSelectMode ? clearSelection() : router.back())}
         onSearch={() => {}}
         rightExtra={
           <View style={{ flexDirection: "row", gap: 10 }}>
             {isSelectMode ? (
               <>
+                {/* <Pressable onPress={toggleSelectAll} style={styles.iconBtn}>
+                  <Text style={styles.iconText}>{allSelected ? "☐" : "☑"}</Text>
+                </Pressable>
+
                 <Pressable onPress={restoreSelected} style={[styles.iconBtn, styles.okBtn]}>
                   <Text style={styles.iconText}>↩</Text>
                 </Pressable>
 
-                <Pressable onPress={() => setConfirmDelete(true)} style={[styles.iconBtn, styles.dangerBtn]}>
+                <Pressable
+                  onPress={() => setConfirmDelete(true)}
+                  style={[styles.iconBtn, styles.dangerBtn]}
+                >
                   <Text style={styles.iconText}>🗑</Text>
-                </Pressable>
+                </Pressable> */}
 
                 <Pressable onPress={clearSelection} style={styles.iconBtn}>
                   <Text style={styles.iconText}>✕</Text>
@@ -124,7 +158,6 @@ export default function TrashScreen() {
                       onLongPress={() => toggleSelect(n.id)}
                     />
 
-                    {/* overlay tick */}
                     <Pressable
                       onPress={() => toggleSelect(n.id)}
                       style={[styles.check, checked ? styles.checkOn : styles.checkOff]}
@@ -133,26 +166,26 @@ export default function TrashScreen() {
                     </Pressable>
                   </View>
 
-                  {/* actions cho 1 item (tuỳ thích): khi chưa chọn mode thì vẫn cho thao tác nhanh */}
                   {!isSelectMode ? (
-                    <View style={styles.actions}>
+                    <View style={styles.actionsRow}>
                       <Pressable
                         onPress={() => {
                           NoteRepo.restoreFromTrash(n.id);
                           load();
                         }}
-                        style={[styles.actionBtn, styles.ok]}
+                        style={[styles.miniBtn, styles.miniOk]}
                       >
-                        <Text style={styles.actionText}>Khôi phục</Text>
+                        <Text style={styles.miniText}>Khôi phục</Text>
                       </Pressable>
+
                       <Pressable
                         onPress={() => {
                           setSelectedIds({ [n.id]: true });
                           setConfirmDelete(true);
                         }}
-                        style={[styles.actionBtn, styles.danger]}
+                        style={[styles.miniBtn, styles.miniDanger]}
                       >
-                        <Text style={styles.actionText}>Xoá vĩnh viễn</Text>
+                        <Text style={styles.miniText}>Xoá</Text>
                       </Pressable>
                     </View>
                   ) : null}
@@ -162,13 +195,22 @@ export default function TrashScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* ✅ bottom bar: xoá tất cả (khi chưa chọn mode) */}
+      {items.length > 0 && !isSelectMode ? (
+        <View style={styles.bottomBar}>
+          <Pressable onPress={selectAllAndConfirmDelete} style={styles.bottomDangerBtn}>
+            <Text style={styles.bottomDangerText}>Xoá tất cả</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </ScreenNote>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#070A12" },
-  content: { padding: 16, paddingBottom: 80 },
+  screen: { flex: 1, paddingBottom:80, backgroundColor: "#070A12" },
+  content: { padding: 16, paddingBottom: 110 },
   grid2: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   cell2: { width: "48%" },
 
@@ -208,9 +250,36 @@ const styles = StyleSheet.create({
   },
   checkText: { color: "white", fontWeight: "900", fontSize: 14 },
 
-  actions: { gap: 8, marginTop: 8 },
-  actionBtn: { paddingVertical: 10, borderRadius: 14, alignItems: "center" },
-  ok: { backgroundColor: "#16A34A" },
-  danger: { backgroundColor: "#DC2626" },
-  actionText: { color: "white", fontWeight: "900" },
+  actionsRow: { flexDirection: "row", gap: 8, marginTop: 8 },
+  miniBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  miniOk: { backgroundColor: "rgba(22,163,74,0.9)" },
+  miniDanger: { backgroundColor: "rgba(220,38,38,0.9)" },
+  miniText: { color: "white", fontWeight: "900", fontSize: 12 },
+
+  // ✅ bottom bar
+  bottomBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 12,
+    backgroundColor: "rgba(7,10,18,0.92)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  bottomDangerBtn: {
+    margin:'auto',
+    width:200,
+    height: 46,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(220,38,38,0.9)",
+  },
+  bottomDangerText: { color: "white", fontWeight: "900", fontSize: 14 },
 });

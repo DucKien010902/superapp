@@ -5,51 +5,44 @@ import { fetchMessages, sendMessage } from "@/lib/contact/api";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    Text,
-    TextInput,
-    View,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type SenderPopulated =
-  | string
-  | {
-      _id?: string;
-      id?: string;
-      name?: string;
-      avatarUrl?: string;
-      avatar?: string;
-      profile?: {
-        displayName?: string;
-        avatarUrl?: string;
-      };
-    };
+type SenderObj = {
+  _id?: string;
+  id?: string;
+  name?: string;
+  avatarUrl?: string;
+  avatar?: string;
+  profile?: {
+    displayName?: string;
+    avatarUrl?: string;
+  };
+};
 
 type Msg = {
   _id: string;
   text: string;
-  senderId: SenderPopulated;
+  senderId: string; // ✅ BE normalize trả string
+  sender?: SenderObj | null; // ✅ BE trả object user ở field sender
   createdAt?: string;
 };
 
-function normId(x: any) {
-  if (!x) return "";
-  if (typeof x === "string") return String(x);
-  return String(x._id || x.id || "");
-}
-
-function pickSenderName(s: any) {
-  if (!s || typeof s === "string") return "Người dùng";
+function pickSenderName(s?: SenderObj | null) {
+  if (!s) return "Người dùng";
   return s.profile?.displayName || s.name || "Người dùng";
 }
 
-function pickSenderAvatar(s: any) {
-  if (!s || typeof s === "string") return "";
+function pickSenderAvatar(s?: SenderObj | null) {
+  if (!s) return "";
   return s.profile?.avatarUrl || s.avatarUrl || s.avatar || "";
 }
 
@@ -220,6 +213,7 @@ export default function GroupChatScreen() {
     setLoading(true);
     try {
       const r = await fetchMessages(token, conversationId);
+      // server trả tăng dần => đảo để dùng inverted
       const arr = ((r.items || []) as Msg[]).slice().reverse();
       setItems(arr);
       if (scroll) scrollToBottom(false);
@@ -242,7 +236,14 @@ export default function GroupChatScreen() {
 
     const optimistic: Msg = {
       _id: `local-${Date.now()}`,
-      senderId: myId, // optimistic chỉ cần id string
+      senderId: myId, // ✅ string
+      sender: {
+        _id: myId,
+        name: myName,
+        profile: { displayName: myName, avatarUrl: myAvatar },
+        avatarUrl: myAvatar,
+        avatar: myAvatar,
+      },
       text: t,
       createdAt: new Date().toISOString(),
     };
@@ -334,7 +335,11 @@ export default function GroupChatScreen() {
               {groupName}
             </Text>
             <Text style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>
-              {loading ? "Đang tải..." : memberCount ? `${memberCount} thành viên` : "Nhóm chat"}
+              {loading
+                ? "Đang tải..."
+                : memberCount
+                ? `${memberCount} thành viên`
+                : "Nhóm chat"}
             </Text>
           </View>
         </View>
@@ -359,23 +364,24 @@ export default function GroupChatScreen() {
             ListEmptyComponent={Empty}
             onContentSizeChange={() => scrollToBottom(false)}
             renderItem={({ item, index }) => {
-              const sid = normId(item.senderId);
+              const sid = String(item.senderId || "");
               const mine = sid === myId;
 
-              const senderName = mine ? myName : pickSenderName(item.senderId);
-              const senderAvatar = mine ? myAvatar : pickSenderAvatar(item.senderId);
+              // ✅ LẤY TÊN/AVATAR TỪ item.sender (do BE trả về)
+              const senderName = mine ? myName : pickSenderName(item.sender);
+              const senderAvatar = mine ? myAvatar : pickSenderAvatar(item.sender);
 
-              // inverted => prev/next block detection (giống screen DM của bạn)
+              // inverted => prev/next block detection
               const prev = items[index + 1];
               const next = items[index - 1];
 
               const prevSame =
-                prev && normId(prev.senderId) === normId(item.senderId);
+                prev && String(prev.senderId) === String(item.senderId);
               const nextSame =
-                next && normId(next.senderId) === normId(item.senderId);
+                next && String(next.senderId) === String(item.senderId);
 
               const showAvatar = !nextSame;
-              const showName = !mine && !prevSame; // ✅ chỉ show tên ở đầu block của người khác
+              const showName = !mine && !prevSame; // show tên ở đầu block của người khác
 
               const avatarSize = 30;
 
@@ -432,17 +438,9 @@ export default function GroupChatScreen() {
                         paddingHorizontal: 12,
                         paddingVertical: 10,
                         borderTopLeftRadius: mine ? 18 : prevSame ? 8 : 18,
-                        borderTopRightRadius: mine
-                          ? prevSame
-                            ? 8
-                            : 18
-                          : 18,
+                        borderTopRightRadius: mine ? (prevSame ? 8 : 18) : 18,
                         borderBottomLeftRadius: mine ? 18 : nextSame ? 8 : 18,
-                        borderBottomRightRadius: mine
-                          ? nextSame
-                            ? 8
-                            : 18
-                          : 18,
+                        borderBottomRightRadius: mine ? (nextSame ? 8 : 18) : 18,
                       }}
                     >
                       <Text

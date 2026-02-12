@@ -25,10 +25,10 @@ export default function AppIconTile({ label, icon, onPress, tone = "blue" }: Pro
 }
 
 const TONE = StyleSheet.create({
-  violet: { backgroundColor: "rgba(124, 92, 255, 0.45)", borderColor: "rgba(124, 92, 255, 0.35)" },
-  blue: { backgroundColor: "rgba(59, 130, 246, 0.40)", borderColor: "rgba(59, 130, 246, 0.32)" },
-  green: { backgroundColor: "rgba(16, 185, 129, 0.40)", borderColor: "rgba(16, 185, 129, 0.32)" },
-  orange: { backgroundColor: "rgba(249, 115, 22, 0.40)", borderColor: "rgba(249, 115, 22, 0.32)" },
+  violet: { backgroundColor: "rgba(124, 92, 255, 1)", borderColor: "rgba(124, 92, 255, 0.35)" },
+  blue: { backgroundColor: "rgba(59, 130, 246, 1)", borderColor: "rgba(59, 130, 246, 0.32)" },
+  green: { backgroundColor: "rgba(16, 185, 129, 1)", borderColor: "rgba(16, 185, 129, 0.32)" },
+  orange: { backgroundColor: "rgba(249, 115, 22, 1)", borderColor: "rgba(249, 115, 22, 0.32)" },
 });
 
 const styles = StyleSheet.create({

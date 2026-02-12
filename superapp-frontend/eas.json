@@ -14,7 +14,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://superapp-s4ww.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://apisupperapp.nsland.vn"
       }
     },
     "production": {

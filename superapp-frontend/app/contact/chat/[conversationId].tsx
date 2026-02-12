@@ -4,14 +4,14 @@ import { fetchMessages, sendMessage } from "@/lib/contact/api";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    Text,
-    TextInput,
-    View,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -446,7 +446,7 @@ export default function ChatScreen() {
             style={{
               paddingHorizontal: 12,
               paddingTop: 10,
-              paddingBottom: 24 + insets.bottom, // ✅ dính đáy + safe area
+              paddingBottom: 0 + insets.bottom, // ✅ dính đáy + safe area
               backgroundColor: "rgba(255,255,255,0.98)",
               borderTopWidth: 1,
               borderTopColor: "#F3F4F6",
