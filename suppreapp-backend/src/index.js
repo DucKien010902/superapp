@@ -9,6 +9,7 @@ import usersRoutes from "./routes/users.routes.js";
 import friendsRoutes from "./routes/friends.routes.js";
 import groups2Routes from "./routes/groups.routes.js";
 import messagesRoutes from "./routes/messages.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 import { requireAuth } from "./middlewares/auth.middleware.js";
 import { browserGate } from "./middlewares/browserGate.middleware.js";
@@ -21,9 +22,9 @@ app.use(morgan("dev"));
 app.use(express.json({ limit: "2mb" }));
 
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+.split(",")
+.map((s) => s.trim())
+.filter(Boolean);
 
 const corsOptions = {
   origin(origin, cb) {
@@ -50,6 +51,7 @@ app.use("/api/users", requireAuth, usersRoutes);
 app.use("/api/friends", requireAuth, friendsRoutes);
 app.use("/api/groups", requireAuth, groups2Routes);
 app.use("/api/messages", requireAuth, messagesRoutes);
+app.use("/api/admin", requireAuth, adminRoutes);
 
 // error handler
 app.use((err, req, res, next) => {

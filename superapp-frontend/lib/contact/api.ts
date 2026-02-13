@@ -108,6 +108,31 @@ export async function acceptFriend(token: string, userId: string) {
 export async function cancelOrUnfriend(token: string, userId: string) {
   return http(`/api/friends/cancel/${userId}`, token, { method: "POST" });
 }
+export async function adminCreateFriend(
+  token: string,
+  payload: { displayName: string; phone: string; username?: string },
+): Promise<UserPublic> {
+  const r = await http<{ ok: true; user: UserPublic }>(
+    "/api/admin/create-friend",
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+  return r.user;
+}
+export async function adminUpdateUser(
+  token: string,
+  userId: string,
+  payload: { profile?: Partial<UserPublic["profile"]> },
+): Promise<UserPublic> {
+  const r = await http<{ user: UserPublic }>(`/api/admin/users/${userId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return r.user;
+}
 
 // ===== MESSAGES
 export async function openDM(

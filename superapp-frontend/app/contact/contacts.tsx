@@ -1,11 +1,13 @@
 import ContactRow from "@/components/contact/ContactRow";
+import CreateFriendModal from "@/components/contact/CreateFriendModal";
 import SearchBar from "@/components/contact/SearchBar";
 import Screen from "@/components/Screen";
 import { useAuth } from "@/lib/auth";
 import { fetchFriends, searchUsers } from "@/lib/contact/api";
 import type { Friend, UserPublic } from "@/lib/contact/types";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 
 type Row =
@@ -16,7 +18,7 @@ const FIRST_PAGE = 5;
 const MORE_PAGE = 10; // tối đa thêm 5 nữa => tổng 10
 
 export default function ContactsScreen() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
 
   const [q, setQ] = useState("");
@@ -29,21 +31,27 @@ export default function ContactsScreen() {
   const [searchLimit, setSearchLimit] = useState(FIRST_PAGE); // 5 -> 10
   const lastReqId = useRef(0);
 
+  const [createOpen, setCreateOpen] = useState(false);
+
   const isSearching = !!q.trim();
+  const isAdmin = String(user?.role || "") === "admin";
+
+  const loadFriends = useCallback(async () => {
+    if (!token) return;
+    try {
+      setFriendsLoading(true);
+      const items = await fetchFriends(token);
+      setFriends(items);
+    } finally {
+      setFriendsLoading(false);
+    }
+  }, [token]);
 
   // load friends
   useEffect(() => {
     if (!token) return;
-    (async () => {
-      try {
-        setFriendsLoading(true);
-        const items = await fetchFriends(token);
-        setFriends(items);
-      } finally {
-        setFriendsLoading(false);
-      }
-    })();
-  }, [token]);
+    loadFriends();
+  }, [token, loadFriends]);
 
   // reset limit khi đổi query
   useEffect(() => {
@@ -156,9 +164,30 @@ export default function ContactsScreen() {
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
-        <Text style={{ fontSize: 16, fontWeight: "800", color: "#111827" }}>
-          {isSearching ? "Kết quả " : "Bạn bè"}
-        </Text>
+        {/* Header row: title + (admin) */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text style={{ fontSize: 16, fontWeight: "800", color: "#111827" }}>
+            {isSearching ? "Kết quả " : "Bạn bè"}
+          </Text>
+
+          {/* ✅ chỉ admin và chỉ khi đang ở tab Bạn bè (không search) */}
+          {isAdmin && !isSearching ? (
+            <Pressable
+              onPress={() => setCreateOpen(true)}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: "#111827",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="add" size={20} color="white" />
+            </Pressable>
+          ) : null}
+        </View>
+
         <Text style={{ marginTop: 4, fontSize: 12, color: "#6B7280" }}>
           {headerCountText}
         </Text>
@@ -201,6 +230,20 @@ export default function ContactsScreen() {
         )}
         ListFooterComponent={Footer}
       />
+
+      {/* ✅ Modal tạo bạn mới (admin) */}
+      {token ? (
+        <CreateFriendModal
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          token={token}
+          onCreated={() => {
+            // tạo xong: refresh list friends, reset search nếu muốn
+            setQ("");
+            loadFriends();
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }
