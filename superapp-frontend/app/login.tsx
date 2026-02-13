@@ -183,7 +183,12 @@ export default function LoginScreen() {
           colors={["#183776", "#183776", "#183776"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ paddingTop: 56, paddingBottom: 26, paddingHorizontal: 18, margin:'auto' }}
+          style={{
+            paddingTop: 56,
+            paddingBottom: 26,
+            paddingHorizontal: 18,
+            margin: "auto",
+          }}
         >
           <Text style={{ color: "white", fontSize: 26, fontWeight: "900" }}>
             Chào mừng bạn
@@ -247,7 +252,9 @@ export default function LoginScreen() {
                   borderColor: "#FECACA",
                 }}
               >
-                <Text style={{ color: "#991B1B", fontWeight: "700" }}>{err}</Text>
+                <Text style={{ color: "#991B1B", fontWeight: "700" }}>
+                  {err}
+                </Text>
               </View>
             ) : null}
 
@@ -269,13 +276,20 @@ export default function LoginScreen() {
               }}
             >
               <Text style={{ color: "#6B7280" }}>Chưa có tài khoản?</Text>
-              <Pressable onPress={() => router.push("/register")} disabled={busy}>
-                <Text style={{ color: "#111827", fontWeight: "900" }}>Đăng ký</Text>
+              <Pressable
+                onPress={() => router.push("/register")}
+                disabled={busy}
+              >
+                <Text style={{ color: "#111827", fontWeight: "900" }}>
+                  Đăng ký
+                </Text>
               </Pressable>
             </View>
           </View>
 
-          <Text style={{ marginTop: 12, textAlign: "center", color: "#9CA3AF" }}>
+          <Text
+            style={{ marginTop: 12, textAlign: "center", color: "#9CA3AF" }}
+          >
             Bằng cách đăng nhập, bạn đồng ý với điều khoản sử dụng.
           </Text>
         </View>

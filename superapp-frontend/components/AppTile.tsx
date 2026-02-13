@@ -11,7 +11,10 @@ type Props = {
 
 export default function AppTile({ title, subtitle, icon, onPress }: Props) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
       <View style={styles.iconWrap}>
         <Ionicons name={icon} size={26} color="#EAF2FF" />
       </View>

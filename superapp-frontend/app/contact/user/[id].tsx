@@ -166,9 +166,13 @@ export default function UserProfileScreen() {
   if (loading) {
     return (
       <Screen top={0} bottom={0}>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
           <ActivityIndicator />
-          <Text style={{ marginTop: 8, color: "#6B7280" }}>Đang tải hồ sơ…</Text>
+          <Text style={{ marginTop: 8, color: "#6B7280" }}>
+            Đang tải hồ sơ…
+          </Text>
         </View>
       </Screen>
     );
@@ -182,15 +186,40 @@ export default function UserProfileScreen() {
       <View style={{ flex: 1, backgroundColor: "#F3F4F6" }}>
         {/* ===== TOP (FB-like) ===== */}
         <View style={{ backgroundColor: "white" }}>
-          <View style={{ height: 210, backgroundColor: "#111827", position: "relative" }}>
+          <View
+            style={{
+              height: 210,
+              backgroundColor: "#111827",
+              position: "relative",
+            }}
+          >
             {/* Cover clickable */}
             <Pressable onPress={() => openPreview("cover")} style={{ flex: 1 }}>
               {cover ? (
-                <Image source={{ uri: cover }} style={{ width: "100%", height: "100%" }} />
+                <Image
+                  source={{ uri: cover }}
+                  style={{ width: "100%", height: "100%" }}
+                />
               ) : (
-                <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                  <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.7)" />
-                  <Text style={{ marginTop: 6, color: "rgba(255,255,255,0.75)", fontWeight: "800" }}>
+                <View
+                  style={{
+                    flex: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons
+                    name="image-outline"
+                    size={28}
+                    color="rgba(255,255,255,0.7)"
+                  />
+                  <Text
+                    style={{
+                      marginTop: 6,
+                      color: "rgba(255,255,255,0.75)",
+                      fontWeight: "800",
+                    }}
+                  >
                     Chưa có ảnh bìa
                   </Text>
                 </View>
@@ -211,7 +240,15 @@ export default function UserProfileScreen() {
             />
 
             {/* Avatar floating clickable */}
-            <View style={{ position: "absolute", left: 16, bottom: -44, zIndex: 50, elevation: 50 }}>
+            <View
+              style={{
+                position: "absolute",
+                left: 16,
+                bottom: -44,
+                zIndex: 50,
+                elevation: 50,
+              }}
+            >
               <Pressable onPress={() => openPreview("avatar")}>
                 <View
                   style={{
@@ -225,10 +262,23 @@ export default function UserProfileScreen() {
                   }}
                 >
                   {avatar ? (
-                    <Image source={{ uri: avatar }} style={{ width: "100%", height: "100%" }} />
+                    <Image
+                      source={{ uri: avatar }}
+                      style={{ width: "100%", height: "100%" }}
+                    />
                   ) : (
-                    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                      <Ionicons name="person-circle-outline" size={40} color="#6B7280" />
+                    <View
+                      style={{
+                        flex: 1,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Ionicons
+                        name="person-circle-outline"
+                        size={40}
+                        color="#6B7280"
+                      />
                     </View>
                   )}
                 </View>
@@ -237,12 +287,16 @@ export default function UserProfileScreen() {
           </View>
 
           {/* Name + bio */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14 }}>
+          <View
+            style={{ paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14 }}
+          >
             <Text style={{ fontSize: 22, fontWeight: "900", color: "#111827" }}>
               {vOrDash(user?.profile?.displayName)}
             </Text>
             <Text style={{ marginTop: 4, fontSize: 13, color: "#6B7280" }}>
-              {user?.profile?.bio?.trim() ? user.profile.bio : "Chưa có tiểu sử"}
+              {user?.profile?.bio?.trim()
+                ? user.profile.bio
+                : "Chưa có tiểu sử"}
             </Text>
 
             {/* Buttons (FB-like) */}
@@ -263,7 +317,9 @@ export default function UserProfileScreen() {
                 }}
               >
                 <Ionicons name={cta.icon} size={18} color="white" />
-                <Text style={{ color: "white", fontWeight: "900" }}>{busy ? "..." : cta.text}</Text>
+                <Text style={{ color: "white", fontWeight: "900" }}>
+                  {busy ? "..." : cta.text}
+                </Text>
               </Pressable>
 
               <Pressable
@@ -281,21 +337,45 @@ export default function UserProfileScreen() {
                   gap: 8,
                 }}
               >
-                <Ionicons name="chatbubble-ellipses-outline" size={18} color="#111827" />
-                <Text style={{ color: "#111827", fontWeight: "900" }}>Nhắn tin</Text>
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={18}
+                  color="#111827"
+                />
+                <Text style={{ color: "#111827", fontWeight: "900" }}>
+                  Nhắn tin
+                </Text>
               </Pressable>
             </View>
 
             {/* Quick chips */}
-            <View style={{ marginTop: 10, flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-              <Chip icon="location-outline" text={formatLocation(user?.profile?.location)} />
+            <View
+              style={{
+                marginTop: 10,
+                flexDirection: "row",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <Chip
+                icon="location-outline"
+                text={formatLocation(user?.profile?.location)}
+              />
               <Chip
                 icon="school-outline"
-                text={user?.profile?.education?.trim() ? user!.profile!.education! : "Chưa thêm học vấn"}
+                text={
+                  user?.profile?.education?.trim()
+                    ? user!.profile!.education!
+                    : "Chưa thêm học vấn"
+                }
               />
               <Chip
                 icon="briefcase-outline"
-                text={user?.profile?.work?.trim() ? user!.profile!.work! : "Chưa thêm công việc"}
+                text={
+                  user?.profile?.work?.trim()
+                    ? user!.profile!.work!
+                    : "Chưa thêm công việc"
+                }
               />
             </View>
           </View>
@@ -304,12 +384,23 @@ export default function UserProfileScreen() {
         {/* ===== Body ===== */}
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
           <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
-            <SectionTitle icon="information-circle-outline" title="Thông tin công khai" />
+            <SectionTitle
+              icon="information-circle-outline"
+              title="Thông tin công khai"
+            />
 
             <Card>
-              <InfoRow icon="at-outline" label="Username" value={vOrDash(user?.profile?.username)} />
+              <InfoRow
+                icon="at-outline"
+                label="Username"
+                value={vOrDash(user?.profile?.username)}
+              />
               <Divider />
-              <InfoRow icon="mail-outline" label="Email" value={vOrDash(user?.email)} />
+              <InfoRow
+                icon="mail-outline"
+                label="Email"
+                value={vOrDash(user?.email)}
+              />
               <Divider />
 
               {/* ✅ SĐT: nổi bật + bấm gọi */}
@@ -319,19 +410,41 @@ export default function UserProfileScreen() {
                 value={vOrDash(user?.profile?.phone)}
                 valueColor={hasPhone ? "#2563EB" : "#111827"}
                 valueUnderline={hasPhone}
-                onPressValue={hasPhone ? () => callPhone(user?.profile?.phone) : undefined}
+                onPressValue={
+                  hasPhone ? () => callPhone(user?.profile?.phone) : undefined
+                }
               />
 
               <Divider />
-              <InfoRow icon="man-outline" label="Giới tính" value={vOrDash(user?.profile?.gender)} />
+              <InfoRow
+                icon="man-outline"
+                label="Giới tính"
+                value={vOrDash(user?.profile?.gender)}
+              />
               <Divider />
-              <InfoRow icon="calendar-outline" label="Ngày sinh" value={vOrDash(user?.profile?.birthday)} />
+              <InfoRow
+                icon="calendar-outline"
+                label="Ngày sinh"
+                value={vOrDash(user?.profile?.birthday)}
+              />
               <Divider />
-              <InfoRow icon="briefcase-outline" label="Công việc" value={vOrDash(user?.profile?.work)} />
+              <InfoRow
+                icon="briefcase-outline"
+                label="Công việc"
+                value={vOrDash(user?.profile?.work)}
+              />
               <Divider />
-              <InfoRow icon="school-outline" label="Học vấn" value={vOrDash(user?.profile?.education)} />
+              <InfoRow
+                icon="school-outline"
+                label="Học vấn"
+                value={vOrDash(user?.profile?.education)}
+              />
               <Divider />
-              <InfoRow icon="navigate-outline" label="Địa điểm" value={formatLocation(user?.profile?.location)} />
+              <InfoRow
+                icon="navigate-outline"
+                label="Địa điểm"
+                value={formatLocation(user?.profile?.location)}
+              />
             </Card>
 
             <View style={{ height: 12 }} />
@@ -341,8 +454,14 @@ export default function UserProfileScreen() {
               {user?.profile?.links && user.profile.links.length > 0 ? (
                 user.profile.links.map((l, idx) => (
                   <View key={`${idx}-${l.label}-${l.url}`}>
-                    <InfoRow icon="globe-outline" label={vOrDash(l.label)} value={vOrDash(l.url)} />
-                    {idx !== (user?.profile?.links?.length ?? 0) - 1 ? <Divider /> : null}
+                    <InfoRow
+                      icon="globe-outline"
+                      label={vOrDash(l.label)}
+                      value={vOrDash(l.url)}
+                    />
+                    {idx !== (user?.profile?.links?.length ?? 0) - 1 ? (
+                      <Divider />
+                    ) : null}
                   </View>
                 ))
               ) : (
@@ -371,7 +490,10 @@ export default function UserProfileScreen() {
                 alignItems: "center",
               }}
             >
-              <Pressable onPress={() => setPreviewOpen(false)} style={{ padding: 10 }}>
+              <Pressable
+                onPress={() => setPreviewOpen(false)}
+                style={{ padding: 10 }}
+              >
                 <Ionicons name="close" size={26} color="white" />
               </Pressable>
               <Text style={{ color: "white", fontWeight: "900" }}>
@@ -380,11 +502,23 @@ export default function UserProfileScreen() {
               <View style={{ width: 46 }} />
             </View>
 
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 14 }}>
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 14,
+              }}
+            >
               {previewUri ? (
                 <Image
                   source={{ uri: previewUri }}
-                  style={{ width: "100%", height: "100%", resizeMode: "contain", borderRadius: 12 }}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    resizeMode: "contain",
+                    borderRadius: 12,
+                  }}
                 />
               ) : null}
             </View>
@@ -413,14 +547,23 @@ function Chip({ icon, text }: { icon: any; text: string }) {
       }}
     >
       <Ionicons name={icon} size={14} color="#1D4ED8" />
-      <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>{text}</Text>
+      <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
+        {text}
+      </Text>
     </View>
   );
 }
 
 function SectionTitle({ icon, title }: { icon: any; title: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 10,
+      }}
+    >
       <View
         style={{
           width: 34,
@@ -435,7 +578,9 @@ function SectionTitle({ icon, title }: { icon: any; title: string }) {
       >
         <Ionicons name={icon} size={18} color="#1D4ED8" />
       </View>
-      <Text style={{ fontSize: 15, fontWeight: "900", color: "#111827" }}>{title}</Text>
+      <Text style={{ fontSize: 15, fontWeight: "900", color: "#111827" }}>
+        {title}
+      </Text>
     </View>
   );
 }
@@ -479,7 +624,14 @@ function InfoRow({
   valueUnderline?: boolean;
 }) {
   return (
-    <View style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
+    <View
+      style={{
+        padding: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
       <View
         style={{
           width: 34,
@@ -496,10 +648,15 @@ function InfoRow({
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 12, color: "#6B7280", fontWeight: "800" }}>{label}</Text>
+        <Text style={{ fontSize: 12, color: "#6B7280", fontWeight: "800" }}>
+          {label}
+        </Text>
 
         {onPressValue ? (
-          <Pressable onPress={onPressValue} style={({ pressed }) => pressed && { opacity: 0.7 }}>
+          <Pressable
+            onPress={onPressValue}
+            style={({ pressed }) => pressed && { opacity: 0.7 }}
+          >
             <Text
               style={{
                 marginTop: 2,

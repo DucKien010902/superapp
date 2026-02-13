@@ -37,14 +37,17 @@ export function migrateNoteDb() {
 
   // seed default folder
   const r = db.getFirstSync<{ c: number }>(
-    `SELECT COUNT(*) as c FROM folders WHERE isSystem=0`
+    `SELECT COUNT(*) as c FROM folders WHERE isSystem=0`,
   );
   if (!r || r.c === 0) {
     const now = nowIso();
     db.runSync(
       `INSERT INTO folders (id, name, "order", isSystem, createdAt, updatedAt)
        VALUES (?, ?, 0, 0, ?, ?)`,
-      Crypto.randomUUID(), "Thư mục 1", now, now
+      Crypto.randomUUID(),
+      "Thư mục 1",
+      now,
+      now,
     );
   }
 }

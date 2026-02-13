@@ -68,11 +68,11 @@ export default function ProfileMeScreen() {
 
   const cover = useMemo(
     () => (edit ? draft.coverUrl : me?.profile?.coverUrl) || "",
-    [edit, draft, me]
+    [edit, draft, me],
   );
   const avatar = useMemo(
     () => (edit ? draft.avatarUrl : me?.profile?.avatarUrl) || "",
-    [edit, draft, me]
+    [edit, draft, me],
   );
 
   const load = async () => {
@@ -151,11 +151,14 @@ export default function ProfileMeScreen() {
 
   async function ensurePermissions() {
     const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!lib.granted) throw new Error("Bạn cần cấp quyền truy cập thư viện ảnh.");
+    if (!lib.granted)
+      throw new Error("Bạn cần cấp quyền truy cập thư viện ảnh.");
     await ImagePicker.requestCameraPermissionsAsync();
   }
 
-  const pickImage = async (mode: "camera" | "library"): Promise<string | null> => {
+  const pickImage = async (
+    mode: "camera" | "library",
+  ): Promise<string | null> => {
     await ensurePermissions();
 
     const base: ImagePicker.ImagePickerOptions = {
@@ -174,7 +177,10 @@ export default function ProfileMeScreen() {
     return result.assets?.[0]?.uri || null;
   };
 
-  const doUpload = async (kind: "avatar" | "cover", mode: "camera" | "library") => {
+  const doUpload = async (
+    kind: "avatar" | "cover",
+    mode: "camera" | "library",
+  ) => {
     if (!edit) {
       Alert.alert("Chỉnh sửa", "Bạn cần bấm 'Sửa' trước khi đổi ảnh.");
       return;
@@ -221,9 +227,13 @@ export default function ProfileMeScreen() {
   if (loading) {
     return (
       <Screen top={0} bottom={0}>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
           <ActivityIndicator />
-          <Text style={{ marginTop: 8, color: "#6B7280" }}>Đang tải hồ sơ…</Text>
+          <Text style={{ marginTop: 8, color: "#6B7280" }}>
+            Đang tải hồ sơ…
+          </Text>
         </View>
       </Screen>
     );
@@ -235,17 +245,39 @@ export default function ProfileMeScreen() {
         {/* ======= TOP HEADER (FB-like) ======= */}
         <View style={{ backgroundColor: "white" }}>
           {/* Cover */}
-          <View style={{ height: 210, backgroundColor: "#111827", position: "relative" }}>
-            <Pressable
-              onPress={() => openPreview("cover")}
-              style={{ flex: 1 }}
-            >
+          <View
+            style={{
+              height: 210,
+              backgroundColor: "#111827",
+              position: "relative",
+            }}
+          >
+            <Pressable onPress={() => openPreview("cover")} style={{ flex: 1 }}>
               {cover ? (
-                <Image source={{ uri: cover }} style={{ width: "100%", height: "100%" }} />
+                <Image
+                  source={{ uri: cover }}
+                  style={{ width: "100%", height: "100%" }}
+                />
               ) : (
-                <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                  <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.7)" />
-                  <Text style={{ marginTop: 6, color: "rgba(255,255,255,0.75)", fontWeight: "800" }}>
+                <View
+                  style={{
+                    flex: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons
+                    name="image-outline"
+                    size={28}
+                    color="rgba(255,255,255,0.7)"
+                  />
+                  <Text
+                    style={{
+                      marginTop: 6,
+                      color: "rgba(255,255,255,0.75)",
+                      fontWeight: "800",
+                    }}
+                  >
                     Chưa có ảnh bìa
                   </Text>
                 </View>
@@ -332,10 +364,23 @@ export default function ProfileMeScreen() {
                   }}
                 >
                   {avatar ? (
-                    <Image source={{ uri: avatar }} style={{ width: "100%", height: "100%" }} />
+                    <Image
+                      source={{ uri: avatar }}
+                      style={{ width: "100%", height: "100%" }}
+                    />
                   ) : (
-                    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                      <Ionicons name="person-circle-outline" size={40} color="#6B7280" />
+                    <View
+                      style={{
+                        flex: 1,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Ionicons
+                        name="person-circle-outline"
+                        size={40}
+                        color="#6B7280"
+                      />
                     </View>
                   )}
                 </View>
@@ -362,7 +407,14 @@ export default function ProfileMeScreen() {
             </View>
 
             {/* ===== Right upload button (requirement) ===== */}
-            <View style={{ position: "absolute", right: 14, bottom: -18,  display: edit ? "flex" : "none",}}>
+            <View
+              style={{
+                position: "absolute",
+                right: 14,
+                bottom: -18,
+                display: edit ? "flex" : "none",
+              }}
+            >
               <Pressable
                 onPress={() => setUploadMenuOpen(true)}
                 style={{
@@ -380,7 +432,9 @@ export default function ProfileMeScreen() {
                 }}
               >
                 <Ionicons name="cloud-upload-outline" size={18} color="white" />
-                <Text style={{ color: "white", fontWeight: "900", fontSize: 12 }}>
+                <Text
+                  style={{ color: "white", fontWeight: "900", fontSize: 12 }}
+                >
                   Tải ảnh
                 </Text>
               </Pressable>
@@ -388,19 +442,41 @@ export default function ProfileMeScreen() {
           </View>
 
           {/* Name + actions row */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14 }}>
+          <View
+            style={{ paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14 }}
+          >
             <Text style={{ fontSize: 22, fontWeight: "900", color: "#111827" }}>
               {edit ? draft.displayName : vOrDash(me?.profile?.displayName)}
             </Text>
             <Text style={{ marginTop: 4, fontSize: 13, color: "#6B7280" }}>
-              {edit ? (draft.bio?.trim() ? draft.bio : "—") : vOrDash(me?.profile?.bio)}
+              {edit
+                ? draft.bio?.trim()
+                  ? draft.bio
+                  : "—"
+                : vOrDash(me?.profile?.bio)}
             </Text>
 
             {/* quick chips */}
-            <View style={{ marginTop: 10, flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-              <Chip icon="location-outline" text={me?.profile?.location?.city || "Chưa đặt địa điểm"} />
-              <Chip icon="school-outline" text={me?.profile?.education || "Chưa thêm học vấn"} />
-              <Chip icon="briefcase-outline" text={me?.profile?.work || "Chưa thêm công việc"} />
+            <View
+              style={{
+                marginTop: 10,
+                flexDirection: "row",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <Chip
+                icon="location-outline"
+                text={me?.profile?.location?.city || "Chưa đặt địa điểm"}
+              />
+              <Chip
+                icon="school-outline"
+                text={me?.profile?.education || "Chưa thêm học vấn"}
+              />
+              <Chip
+                icon="briefcase-outline"
+                text={me?.profile?.work || "Chưa thêm công việc"}
+              />
             </View>
           </View>
         </View>
@@ -410,24 +486,48 @@ export default function ProfileMeScreen() {
           <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
             {!edit ? (
               <>
-                <SectionTitle icon="information-circle-outline" title="Thông tin cá nhân" />
+                <SectionTitle
+                  icon="information-circle-outline"
+                  title="Thông tin cá nhân"
+                />
 
                 <Card>
-                  <InfoRow icon="at-outline" label="Username" value={vOrDash(me?.profile?.username)} />
+                  <InfoRow
+                    icon="at-outline"
+                    label="Username"
+                    value={vOrDash(me?.profile?.username)}
+                  />
                   <Divider />
-                  <InfoRow icon="mail-outline" label="Email" value={vOrDash(me?.email)} />
+                  <InfoRow
+                    icon="mail-outline"
+                    label="Email"
+                    value={vOrDash(me?.email)}
+                  />
                   <Divider />
-                  <InfoRow icon="call-outline" label="SĐT" value={vOrDash(me?.profile?.phone)} />
+                  <InfoRow
+                    icon="call-outline"
+                    label="SĐT"
+                    value={vOrDash(me?.profile?.phone)}
+                  />
                   <Divider />
-                  <InfoRow icon="man-outline" label="Giới tính" value={vOrDash(me?.profile?.gender)} />
+                  <InfoRow
+                    icon="man-outline"
+                    label="Giới tính"
+                    value={vOrDash(me?.profile?.gender)}
+                  />
                   <Divider />
-                  <InfoRow icon="calendar-outline" label="Ngày sinh" value={vOrDash(me?.profile?.birthday)} />
+                  <InfoRow
+                    icon="calendar-outline"
+                    label="Ngày sinh"
+                    value={vOrDash(me?.profile?.birthday)}
+                  />
                   <Divider />
                   <InfoRow
                     icon="navigate-outline"
                     label="Địa điểm"
                     value={
-                      me?.profile?.location?.city || me?.profile?.location?.country
+                      me?.profile?.location?.city ||
+                      me?.profile?.location?.country
                         ? `${me?.profile?.location?.city || ""} ${me?.profile?.location?.country || ""}`.trim()
                         : "—"
                     }
@@ -442,7 +542,9 @@ export default function ProfileMeScreen() {
                   <Field
                     label="Display name *"
                     value={draft.displayName}
-                    onChange={(t) => setDraft((p) => ({ ...p, displayName: t }))}
+                    onChange={(t) =>
+                      setDraft((p) => ({ ...p, displayName: t }))
+                    }
                   />
                   <Divider />
                   <Field
@@ -532,7 +634,9 @@ export default function ProfileMeScreen() {
                   }}
                   disabled={saving || !!uploading}
                 >
-                  <Text style={{ color: "white", fontWeight: "900" }}>Đăng xuất</Text>
+                  <Text style={{ color: "white", fontWeight: "900" }}>
+                    Đăng xuất
+                  </Text>
                 </Pressable>
               </>
             )}
@@ -540,10 +644,19 @@ export default function ProfileMeScreen() {
         </ScrollView>
 
         {/* ===== Upload menu (right button) ===== */}
-        <Modal visible={uploadMenuOpen} transparent animationType="fade" onRequestClose={() => setUploadMenuOpen(false)}>
+        <Modal
+          visible={uploadMenuOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setUploadMenuOpen(false)}
+        >
           <Pressable
             onPress={() => setUploadMenuOpen(false)}
-            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }}
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.45)",
+              justifyContent: "flex-end",
+            }}
           >
             <Pressable
               onPress={() => {}}
@@ -555,10 +668,19 @@ export default function ProfileMeScreen() {
               }}
             >
               <View style={{ alignItems: "center", marginBottom: 10 }}>
-                <View style={{ width: 44, height: 5, borderRadius: 99, backgroundColor: "#E5E7EB" }} />
+                <View
+                  style={{
+                    width: 44,
+                    height: 5,
+                    borderRadius: 99,
+                    backgroundColor: "#E5E7EB",
+                  }}
+                />
               </View>
 
-              <Text style={{ fontSize: 14, fontWeight: "900", color: "#111827" }}>
+              <Text
+                style={{ fontSize: 14, fontWeight: "900", color: "#111827" }}
+              >
                 Tải ảnh lên
               </Text>
               <Text style={{ marginTop: 4, fontSize: 12, color: "#6B7280" }}>
@@ -570,13 +692,21 @@ export default function ProfileMeScreen() {
               <ActionRow
                 icon="person-circle-outline"
                 title="Đổi ảnh đại diện"
-                subtitle={uploading === "avatar" ? "Đang upload…" : "Chọn ảnh và upload"}
+                subtitle={
+                  uploading === "avatar" ? "Đang upload…" : "Chọn ảnh và upload"
+                }
                 onPress={() => {
                   setUploadMenuOpen(false);
                   Alert.alert("Ảnh đại diện", "Chọn nguồn ảnh", [
                     { text: "Hủy", style: "cancel" },
-                    { text: "Chụp ảnh", onPress: () => doUpload("avatar", "camera") },
-                    { text: "Thư viện", onPress: () => doUpload("avatar", "library") },
+                    {
+                      text: "Chụp ảnh",
+                      onPress: () => doUpload("avatar", "camera"),
+                    },
+                    {
+                      text: "Thư viện",
+                      onPress: () => doUpload("avatar", "library"),
+                    },
                   ]);
                 }}
               />
@@ -584,20 +714,41 @@ export default function ProfileMeScreen() {
               <ActionRow
                 icon="image-outline"
                 title="Đổi ảnh bìa"
-                subtitle={uploading === "cover" ? "Đang upload…" : "Chọn ảnh và upload"}
+                subtitle={
+                  uploading === "cover" ? "Đang upload…" : "Chọn ảnh và upload"
+                }
                 onPress={() => {
                   setUploadMenuOpen(false);
                   Alert.alert("Ảnh bìa", "Chọn nguồn ảnh", [
                     { text: "Hủy", style: "cancel" },
-                    { text: "Chụp ảnh", onPress: () => doUpload("cover", "camera") },
-                    { text: "Thư viện", onPress: () => doUpload("cover", "library") },
+                    {
+                      text: "Chụp ảnh",
+                      onPress: () => doUpload("cover", "camera"),
+                    },
+                    {
+                      text: "Thư viện",
+                      onPress: () => doUpload("cover", "library"),
+                    },
                   ]);
                 }}
               />
 
               {!edit ? (
-                <View style={{ marginTop: 10, padding: 12, borderRadius: 14, backgroundColor: "#FEE2E2" }}>
-                  <Text style={{ color: "#991B1B", fontSize: 12, fontWeight: "800" }}>
+                <View
+                  style={{
+                    marginTop: 10,
+                    padding: 12,
+                    borderRadius: 14,
+                    backgroundColor: "#FEE2E2",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#991B1B",
+                      fontSize: 12,
+                      fontWeight: "800",
+                    }}
+                  >
                     Lưu ý: Bạn cần bấm “Sửa” trước khi đổi ảnh.
                   </Text>
                 </View>
@@ -609,10 +760,26 @@ export default function ProfileMeScreen() {
         </Modal>
 
         {/* ===== Image preview modal ===== */}
-        <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
+        <Modal
+          visible={previewOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPreviewOpen(false)}
+        >
           <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.92)" }}>
-            <View style={{ paddingTop: 44, paddingHorizontal: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Pressable onPress={() => setPreviewOpen(false)} style={{ padding: 10 }}>
+            <View
+              style={{
+                paddingTop: 44,
+                paddingHorizontal: 12,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Pressable
+                onPress={() => setPreviewOpen(false)}
+                style={{ padding: 10 }}
+              >
                 <Ionicons name="close" size={26} color="white" />
               </Pressable>
               <Text style={{ color: "white", fontWeight: "900" }}>
@@ -621,7 +788,14 @@ export default function ProfileMeScreen() {
               <View style={{ width: 46 }} />
             </View>
 
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 14 }}>
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 14,
+              }}
+            >
               {previewUri ? (
                 <Image
                   source={{ uri: previewUri }}
@@ -677,7 +851,9 @@ function IconBtn({
       }}
     >
       <Ionicons name={icon} size={16} color="white" />
-      <Text style={{ color: "white", fontWeight: "900", fontSize: 12 }}>{label}</Text>
+      <Text style={{ color: "white", fontWeight: "900", fontSize: 12 }}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -698,14 +874,23 @@ function Chip({ icon, text }: { icon: any; text: string }) {
       }}
     >
       <Ionicons name={icon} size={14} color="#1D4ED8" />
-      <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>{text}</Text>
+      <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
+        {text}
+      </Text>
     </View>
   );
 }
 
 function SectionTitle({ icon, title }: { icon: any; title: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 10,
+      }}
+    >
       <View
         style={{
           width: 34,
@@ -720,7 +905,9 @@ function SectionTitle({ icon, title }: { icon: any; title: string }) {
       >
         <Ionicons name={icon} size={18} color="#1D4ED8" />
       </View>
-      <Text style={{ fontSize: 15, fontWeight: "900", color: "#111827" }}>{title}</Text>
+      <Text style={{ fontSize: 15, fontWeight: "900", color: "#111827" }}>
+        {title}
+      </Text>
     </View>
   );
 }
@@ -745,9 +932,24 @@ function Divider() {
   return <View style={{ height: 1, backgroundColor: "#F3F4F6" }} />;
 }
 
-function InfoRow({ icon, label, value }: { icon: any; label: string; value: string }) {
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+}) {
   return (
-    <View style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
+    <View
+      style={{
+        padding: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
       <View
         style={{
           width: 34,
@@ -764,8 +966,17 @@ function InfoRow({ icon, label, value }: { icon: any; label: string; value: stri
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 12, color: "#6B7280", fontWeight: "800" }}>{label}</Text>
-        <Text style={{ marginTop: 2, fontSize: 13, color: "#111827", fontWeight: "900" }}>
+        <Text style={{ fontSize: 12, color: "#6B7280", fontWeight: "800" }}>
+          {label}
+        </Text>
+        <Text
+          style={{
+            marginTop: 2,
+            fontSize: 13,
+            color: "#111827",
+            fontWeight: "900",
+          }}
+        >
           {value}
         </Text>
       </View>
@@ -788,7 +999,14 @@ function Field({
 }) {
   return (
     <View style={{ padding: 12 }}>
-      <Text style={{ fontSize: 12, color: "#6B7280", fontWeight: "900", marginBottom: 8 }}>
+      <Text
+        style={{
+          fontSize: 12,
+          color: "#6B7280",
+          fontWeight: "900",
+          marginBottom: 8,
+        }}
+      >
         {label}
       </Text>
       <TextInput
@@ -854,8 +1072,12 @@ function ActionRow({
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 13, fontWeight: "900", color: "#111827" }}>{title}</Text>
-        <Text style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>{subtitle}</Text>
+        <Text style={{ fontSize: 13, fontWeight: "900", color: "#111827" }}>
+          {title}
+        </Text>
+        <Text style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>
+          {subtitle}
+        </Text>
       </View>
 
       <Ionicons name="chevron-forward" size={18} color="#6B7280" />

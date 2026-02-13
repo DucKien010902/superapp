@@ -1,6 +1,10 @@
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:4000"; // emulator default
 
-export async function http<T>(path: string, token: string | null, init?: RequestInit): Promise<T> {
+export async function http<T>(
+  path: string,
+  token: string | null,
+  init?: RequestInit,
+): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {

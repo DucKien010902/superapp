@@ -21,19 +21,19 @@ export default function TrashScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
   const selectedCount = useMemo(
     () => Object.values(selectedIds).filter(Boolean).length,
-    [selectedIds]
+    [selectedIds],
   );
 
   const isSelectMode = selectedCount > 0;
 
   const selectedList = useMemo(
     () => Object.keys(selectedIds).filter((k) => selectedIds[k]),
-    [selectedIds]
+    [selectedIds],
   );
 
   const toggleSelect = (id: string) => {
@@ -68,8 +68,8 @@ export default function TrashScreen() {
     if (!items.length) return;
     const map: Record<string, boolean> = {};
     for (const n of items) map[n.id] = true;
-    setSelectedIds(map);          // ✅ chọn hết
-    setConfirmDelete(true);       // ✅ mở confirm
+    setSelectedIds(map); // ✅ chọn hết
+    setConfirmDelete(true); // ✅ mở confirm
   };
 
   const deleteSelected = () => {
@@ -88,11 +88,16 @@ export default function TrashScreen() {
   };
 
   return (
-    <ScreenNote style={styles.screen} contentStyle={{ backgroundColor: "#070A12" }}>
+    <ScreenNote
+      style={styles.screen}
+      contentStyle={{ backgroundColor: "#070A12" }}
+    >
       <TopBar
         title={isSelectMode ? `Đã chọn ${selectedCount}` : "Thùng rác"}
         subtitle={
-          isSelectMode ? "Chọn để xoá vĩnh viễn / khôi phục" : `${items.length} mục`
+          isSelectMode
+            ? "Chọn để xoá vĩnh viễn / khôi phục"
+            : `${items.length} mục`
         }
         onMenu={() => (isSelectMode ? clearSelection() : router.back())}
         onSearch={() => {}}
@@ -140,7 +145,10 @@ export default function TrashScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {items.length === 0 ? (
-          <EmptyState title="Thùng rác trống" desc="Các ghi chú đã xoá sẽ nằm ở đây." />
+          <EmptyState
+            title="Thùng rác trống"
+            desc="Các ghi chú đã xoá sẽ nằm ở đây."
+          />
         ) : (
           <View style={styles.grid2}>
             {items.map((n) => {
@@ -160,7 +168,10 @@ export default function TrashScreen() {
 
                     <Pressable
                       onPress={() => toggleSelect(n.id)}
-                      style={[styles.check, checked ? styles.checkOn : styles.checkOff]}
+                      style={[
+                        styles.check,
+                        checked ? styles.checkOn : styles.checkOff,
+                      ]}
                     >
                       <Text style={styles.checkText}>{checked ? "✓" : ""}</Text>
                     </Pressable>
@@ -199,7 +210,10 @@ export default function TrashScreen() {
       {/* ✅ bottom bar: xoá tất cả (khi chưa chọn mode) */}
       {items.length > 0 && !isSelectMode ? (
         <View style={styles.bottomBar}>
-          <Pressable onPress={selectAllAndConfirmDelete} style={styles.bottomDangerBtn}>
+          <Pressable
+            onPress={selectAllAndConfirmDelete}
+            style={styles.bottomDangerBtn}
+          >
             <Text style={styles.bottomDangerText}>Xoá tất cả</Text>
           </Pressable>
         </View>
@@ -209,7 +223,7 @@ export default function TrashScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingBottom:80, backgroundColor: "#070A12" },
+  screen: { flex: 1, paddingBottom: 80, backgroundColor: "#070A12" },
   content: { padding: 16, paddingBottom: 110 },
   grid2: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   cell2: { width: "48%" },
@@ -225,8 +239,14 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.10)",
   },
   iconText: { color: "white", fontSize: 16, fontWeight: "900" },
-  okBtn: { backgroundColor: "rgba(22,163,74,0.25)", borderColor: "rgba(22,163,74,0.35)" },
-  dangerBtn: { backgroundColor: "rgba(220,38,38,0.25)", borderColor: "rgba(220,38,38,0.35)" },
+  okBtn: {
+    backgroundColor: "rgba(22,163,74,0.25)",
+    borderColor: "rgba(22,163,74,0.35)",
+  },
+  dangerBtn: {
+    backgroundColor: "rgba(220,38,38,0.25)",
+    borderColor: "rgba(220,38,38,0.35)",
+  },
 
   cardWrap: { position: "relative" },
   check: {
@@ -273,8 +293,8 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255,255,255,0.08)",
   },
   bottomDangerBtn: {
-    margin:'auto',
-    width:200,
+    margin: "auto",
+    width: 200,
     height: 46,
     borderRadius: 16,
     alignItems: "center",

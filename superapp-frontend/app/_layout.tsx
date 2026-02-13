@@ -1,5 +1,10 @@
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
+import {
+  Stack,
+  useRootNavigationState,
+  useRouter,
+  useSegments,
+} from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -38,8 +43,6 @@ function AuthGate() {
 
   return null;
 }
-
-
 
 export default function RootLayout() {
   return (

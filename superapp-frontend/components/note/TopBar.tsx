@@ -39,7 +39,7 @@ export default function TopBar({
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 },
   row: { flexDirection: "row", alignItems: "center", gap: 10 },
-  title: { color: "white", fontSize: 28, fontWeight: "900" },
+  title: { color: "white", fontSize: 24, fontWeight: "900" },
   sub: { marginTop: 4, color: "rgba(255,255,255,0.65)", fontSize: 13 },
   iconBtn: {
     width: 60,

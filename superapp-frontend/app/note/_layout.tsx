@@ -7,7 +7,5 @@ export default function NoteLayout() {
     migrateNoteDb();
   }, []);
 
-  return (
-    <Stack screenOptions={{ headerShown: false, animation: "none" }} />
-  );
+  return <Stack screenOptions={{ headerShown: false, animation: "none" }} />;
 }

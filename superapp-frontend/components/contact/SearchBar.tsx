@@ -36,11 +36,7 @@ export default function SearchBar({
           color: "#111827",
         }}
       />
-      <Pressable
-        onPress={onMenuPress}
-        hitSlop={10}
-        style={{ paddingLeft: 10 }}
-      >
+      <Pressable onPress={onMenuPress} hitSlop={10} style={{ paddingLeft: 10 }}>
         <Ionicons name="ellipsis-vertical" size={18} color="#6B7280" />
       </Pressable>
     </View>

@@ -8,7 +8,9 @@ import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 
-type Row = { kind: "friend"; friend: Friend } | { kind: "user"; user: UserPublic };
+type Row =
+  | { kind: "friend"; friend: Friend }
+  | { kind: "user"; user: UserPublic };
 
 const FIRST_PAGE = 5;
 const MORE_PAGE = 10; // tối đa thêm 5 nữa => tổng 10
@@ -68,7 +70,10 @@ export default function ContactsScreen() {
     const t = setTimeout(async () => {
       try {
         setSearchLoading(true);
-        const items = await searchUsers(token, s, { limit: searchLimit, skip: 0 });
+        const items = await searchUsers(token, s, {
+          limit: searchLimit,
+          skip: 0,
+        });
 
         // tránh race condition khi gõ nhanh
         if (reqId !== lastReqId.current) return;
@@ -86,7 +91,8 @@ export default function ContactsScreen() {
   }, [q, token, searchLimit]);
 
   const rows: Row[] = useMemo(() => {
-    if (!isSearching) return friends.map((f) => ({ kind: "friend", friend: f }));
+    if (!isSearching)
+      return friends.map((f) => ({ kind: "friend", friend: f }));
     return users.map((u) => ({ kind: "user", user: u }));
   }, [isSearching, friends, users]);
 
@@ -132,7 +138,8 @@ export default function ContactsScreen() {
   };
 
   const headerCountText = (() => {
-    if (!isSearching) return friendsLoading ? "Đang tải..." : `${rows.length} mục`;
+    if (!isSearching)
+      return friendsLoading ? "Đang tải..." : `${rows.length} mục`;
     if (searchLoading && users.length === 0) return "Đang tìm...";
     // đang search: hiển thị số đang có / giới hạn (5 hoặc 10)
     return `${rows.length} / ${searchLimit} kết quả`;
@@ -141,14 +148,20 @@ export default function ContactsScreen() {
   return (
     <Screen top={8} bottom={0}>
       <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
-        <SearchBar value={q} onChange={setQ} placeholder="Search name / phone" />
+        <SearchBar
+          value={q}
+          onChange={setQ}
+          placeholder="Search name / phone"
+        />
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
         <Text style={{ fontSize: 16, fontWeight: "800", color: "#111827" }}>
           {isSearching ? "Kết quả " : "Bạn bè"}
         </Text>
-        <Text style={{ marginTop: 4, fontSize: 12, color: "#6B7280" }}>{headerCountText}</Text>
+        <Text style={{ marginTop: 4, fontSize: 12, color: "#6B7280" }}>
+          {headerCountText}
+        </Text>
       </View>
 
       <FlatList
@@ -158,7 +171,9 @@ export default function ContactsScreen() {
           paddingBottom: 120,
         }}
         data={rows}
-        keyExtractor={(it) => (it.kind === "friend" ? it.friend.id : it.user.id)}
+        keyExtractor={(it) =>
+          it.kind === "friend" ? it.friend.id : it.user.id
+        }
         renderItem={({ item }) => {
           if (item.kind === "friend") {
             return (
@@ -181,7 +196,9 @@ export default function ContactsScreen() {
             />
           );
         }}
-        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: "#F3F4F6" }} />}
+        ItemSeparatorComponent={() => (
+          <View style={{ height: 1, backgroundColor: "#F3F4F6" }} />
+        )}
         ListFooterComponent={Footer}
       />
     </Screen>

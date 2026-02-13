@@ -20,4 +20,8 @@ export type Note = {
   deletedAt: string | null;
 };
 
-export type SortKey = "updated_desc" | "updated_asc" | "title_asc" | "title_desc";
+export type SortKey =
+  | "updated_desc"
+  | "updated_asc"
+  | "title_asc"
+  | "title_desc";

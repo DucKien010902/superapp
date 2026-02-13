@@ -33,7 +33,10 @@ export default function GroupsScreen() {
     if (!token) return;
     setLoading(true);
     try {
-      const [fs, gs] = await Promise.all([fetchFriends(token), fetchGroups(token)]);
+      const [fs, gs] = await Promise.all([
+        fetchFriends(token),
+        fetchGroups(token),
+      ]);
       setFriends(fs);
       setGroups(gs);
     } finally {
@@ -57,7 +60,9 @@ export default function GroupsScreen() {
 
   // NOTE: isHidden hiện chỉ là “local UI”, chưa lưu server
   const toggleHidden = (id: string) => {
-    setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, isHidden: !g.isHidden } : g)));
+    setGroups((prev) =>
+      prev.map((g) => (g.id === id ? { ...g, isHidden: !g.isHidden } : g)),
+    );
   };
 
   const onOpenCreate = () => {
@@ -95,7 +100,14 @@ export default function GroupsScreen() {
   return (
     <Screen style={{ backgroundColor: "white" }} top={8}>
       {/* Header + Create */}
-      <View style={{ paddingHorizontal: 16, marginTop: 16, flexDirection: "row", alignItems: "center" }}>
+      <View
+        style={{
+          paddingHorizontal: 16,
+          marginTop: 16,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+      >
         <View style={{ flex: 1 }}>
           <SearchBar value={q} onChange={setQ} placeholder="Tìm nhóm..." />
         </View>
@@ -110,19 +122,27 @@ export default function GroupsScreen() {
             backgroundColor: "#111827",
           }}
         >
-          <Text style={{ color: "white", fontWeight: "900", fontSize: 12 }}>+ Tạo</Text>
+          <Text style={{ color: "white", fontWeight: "900", fontSize: 12 }}>
+            + Tạo
+          </Text>
         </Pressable>
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
-        <Text style={{ fontSize: 16, fontWeight: "800", color: "#111827" }}>Nhóm</Text>
+        <Text style={{ fontSize: 16, fontWeight: "800", color: "#111827" }}>
+          Nhóm
+        </Text>
         <Text style={{ marginTop: 4, fontSize: 12, color: "#6B7280" }}>
           {loading ? "Đang tải..." : `${filtered.length} nhóm`}
         </Text>
       </View>
 
       <FlatList
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 8,
+          paddingBottom: 24,
+        }}
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -133,26 +153,44 @@ export default function GroupsScreen() {
             onPress={() => router.push(`/contact/group/${item.id}` as any)}
           />
         )}
-        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: "#F3F4F6" }} />}
+        ItemSeparatorComponent={() => (
+          <View style={{ height: 1, backgroundColor: "#F3F4F6" }} />
+        )}
       />
 
       {/* Create Group Modal */}
-      <Modal visible={openCreate} transparent animationType="fade" onRequestClose={() => setOpenCreate(false)}>
+      <Modal
+        visible={openCreate}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpenCreate(false)}
+      >
         <Pressable
           onPress={() => setOpenCreate(false)}
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", padding: 18 }}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.35)",
+            justifyContent: "center",
+            padding: 18,
+          }}
         >
           <Pressable
             onPress={() => {}}
             style={{ backgroundColor: "white", borderRadius: 18, padding: 14 }}
           >
-            <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>Tạo nhóm mới</Text>
+            <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
+              Tạo nhóm mới
+            </Text>
             <Text style={{ marginTop: 6, fontSize: 12, color: "#6B7280" }}>
               Nhóm tạo xong bạn sẽ là Owner và tự động là thành viên.
             </Text>
 
             <View style={{ marginTop: 12 }}>
-              <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>Tên nhóm</Text>
+              <Text
+                style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}
+              >
+                Tên nhóm
+              </Text>
               <TextInput
                 value={newName}
                 onChangeText={setNewName}
@@ -170,12 +208,23 @@ export default function GroupsScreen() {
                 }}
               />
               {!!createErr && (
-                <Text style={{ marginTop: 8, fontSize: 12, color: "#DC2626" }}>{createErr}</Text>
+                <Text style={{ marginTop: 8, fontSize: 12, color: "#DC2626" }}>
+                  {createErr}
+                </Text>
               )}
             </View>
 
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 14 }}>
-              <Pressable onPress={() => setOpenCreate(false)} style={{ padding: 10, marginRight: 6 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "flex-end",
+                marginTop: 14,
+              }}
+            >
+              <Pressable
+                onPress={() => setOpenCreate(false)}
+                style={{ padding: 10, marginRight: 6 }}
+              >
                 <Text style={{ fontWeight: "900", color: "#6B7280" }}>Hủy</Text>
               </Pressable>
               <Pressable

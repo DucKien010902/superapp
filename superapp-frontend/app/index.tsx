@@ -33,7 +33,11 @@ export default function Home() {
         end={{ x: 0, y: 1 }}
       />
       <LinearGradient
-        colors={["rgba(255,255,255,0.75)", "transparent", "rgba(15,23,42,0.18)"]}
+        colors={[
+          "rgba(255,255,255,0.75)",
+          "transparent",
+          "rgba(15,23,42,0.18)",
+        ]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}

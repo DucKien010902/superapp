@@ -1,6 +1,12 @@
 import { http } from "@/lib/http";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 const TOKEN_KEY = "auth_token";
 const USER_KEY = "auth_me";
@@ -33,7 +39,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // backend của bạn: GET /api/users/me -> { user: ... }
-    const r = await http<{ user: AuthUser }>("/api/users/me", useToken, { method: "GET" });
+    const r = await http<{ user: AuthUser }>("/api/users/me", useToken, {
+      method: "GET",
+    });
     setUser(r.user || null);
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(r.user || null));
   };
@@ -81,8 +89,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = useMemo(
-    () => ({ token, user, loading, signIn, signOut, reset, refreshMe: () => refreshMe() }),
-    [token, user, loading]
+    () => ({
+      token,
+      user,
+      loading,
+      signIn,
+      signOut,
+      reset,
+      refreshMe: () => refreshMe(),
+    }),
+    [token, user, loading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

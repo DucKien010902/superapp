@@ -30,7 +30,10 @@ export default function NoteSearchScreen() {
   }, [q, items.length]);
 
   return (
-    <ScreenNote style={styles.screen} contentStyle={{ backgroundColor: "#070A12" }}>
+    <ScreenNote
+      style={styles.screen}
+      contentStyle={{ backgroundColor: "#070A12" }}
+    >
       <View style={styles.top}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
@@ -49,14 +52,20 @@ export default function NoteSearchScreen() {
 
       <View style={styles.content}>
         {!q.trim() ? (
-          <EmptyState title="Tìm kiếm" desc="Bạn có thể tìm theo tiêu đề hoặc nội dung." />
+          <EmptyState
+            title="Tìm kiếm"
+            desc="Bạn có thể tìm theo tiêu đề hoặc nội dung."
+          />
         ) : items.length === 0 ? (
           <EmptyState title="Không có kết quả" desc="Thử từ khoá khác nhé." />
         ) : (
           <View style={styles.grid2}>
             {items.map((n) => (
               <View key={n.id} style={styles.cell2}>
-                <NoteCard note={n} onPress={() => router.push(`/note/note/${n.id}`)} />
+                <NoteCard
+                  note={n}
+                  onPress={() => router.push(`/note/note/${n.id}`)}
+                />
               </View>
             ))}
           </View>
@@ -68,7 +77,12 @@ export default function NoteSearchScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#070A12", paddingTop: 10 },
-  top: { flexDirection: "row", gap: 10, paddingHorizontal: 16, alignItems: "center" },
+  top: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
   backBtn: {
     width: 40,
     height: 40,
@@ -90,7 +104,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  meta: { paddingHorizontal: 16, paddingTop: 10, color: "rgba(255,255,255,0.65)", fontWeight: "800" },
+  meta: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    color: "rgba(255,255,255,0.65)",
+    fontWeight: "800",
+  },
   content: { flex: 1, padding: 16 },
   grid2: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   cell2: { width: "48%" },

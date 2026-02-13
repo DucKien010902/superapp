@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import Group from "../models/Group.model.js";
 import GroupMember from "../models/GroupMember.model.js";
 import Friendship from "../models/Friendship.model.js";
+import GroupNotice from "../models/GroupNotice.model.js";
 
 const router = Router();
 
@@ -269,19 +270,27 @@ router.patch("/:id", ensureMember, ensureAdmin, async (req, res, next) => {
 // ===============
 router.patch("/:id/members/:userId/role", ensureMember, async (req, res, next) => {
   try {
+    // ✅ chỉ owner mới được đổi role (kể cả admin cũng không)
     if (req.meMember.role !== "owner") return res.status(403).json({ message: "Only owner" });
 
     const targetId = oid(req.params.userId);
     if (!targetId) return res.status(400).json({ message: "Invalid userId" });
 
     const { role } = req.body || {};
-    if (role !== "admin" && role !== "member")
+    if (role !== "owner" && role !== "admin" && role !== "member") {
       return res.status(400).json({ message: "Invalid role" });
+    }
 
-    // không cho đổi role của owner
     const target = await GroupMember.findOne({ groupId: req.groupId, userId: targetId }).lean();
     if (!target) return res.status(404).json({ message: "Member not found" });
-    if (target.role === "owner") return res.status(400).json({ message: "Cannot change owner" });
+
+    // ✅ nếu muốn set owner: giới hạn tối đa 2 owner
+    if (role === "owner") {
+      const ownerCount = await GroupMember.countDocuments({ groupId: req.groupId, role: "owner" });
+      if (ownerCount >= 2 && target.role !== "owner") {
+        return res.status(400).json({ message: "Max 2 owners in a group" });
+      }
+    }
 
     await GroupMember.updateOne({ groupId: req.groupId, userId: targetId }, { $set: { role } });
     res.json({ ok: true });
@@ -289,7 +298,6 @@ router.patch("/:id/members/:userId/role", ensureMember, async (req, res, next) =
     next(e);
   }
 });
-
 // ===============
 // DELETE /api/groups/:id/members/:userId
 // kick member: owner/admin (admin không kick owner/admin khác)
@@ -342,5 +350,91 @@ router.delete("/:id", ensureMember, async (req, res, next) => {
     next(e);
   }
 });
+// ===============
+// GET /api/groups/:id/notices
+// member xem được
+// ===============
+router.get("/:id/notices", ensureMember, async (req, res, next) => {
+  try {
+    const rows = await GroupNotice.find({ groupId: req.groupId })
+      .sort({ isPinned: -1, updatedAt: -1 })
+      .lean();
 
+    const items = rows.map((n) => ({
+      id: String(n._id),
+      groupId: String(n.groupId),
+      title: n.title,
+      isPinned: !!n.isPinned,
+      createdBy: String(n.createdBy),
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
+      items: (n.items || []).map((it) => ({
+        id: String(it._id),
+        text: it.text,
+        createdBy: String(it.createdBy),
+        createdAt: it.createdAt,
+      })),
+    }));
+
+    res.json({ items });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// ===============
+// POST /api/groups/:id/notices
+// owner tạo thông báo chính
+// body: { title, isPinned? }
+// ===============
+router.post("/:id/notices", ensureMember, async (req, res, next) => {
+  try {
+    const meId = req.user.id;
+    const { title, isPinned = false } = req.body || {};
+    if (!title?.trim()) return res.status(400).json({ message: "Title is required" });
+
+    const doc = await GroupNotice.create({
+      groupId: req.groupId,
+      title: title.trim(),
+      isPinned: !!isPinned,
+      createdBy: meId,
+      items: [],
+    });
+
+    res.json({
+      ok: true,
+      item: { id: String(doc._id) },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// ===============
+// POST /api/groups/:id/notices/:noticeId/items
+// owner thêm thông báo phụ
+// body: { text }
+// ===============
+router.post("/:id/notices/:noticeId/items", ensureMember, async (req, res, next) => {
+  try {
+    const meId = req.user.id;
+    const noticeId = oid(req.params.noticeId);
+    if (!noticeId) return res.status(400).json({ message: "Invalid noticeId" });
+
+    const { text } = req.body || {};
+    if (!text?.trim()) return res.status(400).json({ message: "Text is required" });
+
+    const n = await GroupNotice.findOne({ _id: noticeId, groupId: req.groupId }).lean();
+    if (!n) return res.status(404).json({ message: "Notice not found" });
+
+    await GroupNotice.updateOne(
+      { _id: noticeId },
+      { $push: { items: { text: text.trim(), createdBy: meId } } }
+    );
+
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
 export default router;

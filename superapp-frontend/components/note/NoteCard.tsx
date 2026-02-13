@@ -16,7 +16,11 @@ export default function NoteCard({
   return (
     <Pressable onPress={onPress} onLongPress={onLongPress} style={styles.card}>
       <View style={styles.topRow}>
-        {note.pinned ? <Text style={styles.pin}>📌</Text> : <Text style={styles.pinGhost}> </Text>}
+        {note.pinned ? (
+          <Text style={styles.pin}>📌</Text>
+        ) : (
+          <Text style={styles.pinGhost}> </Text>
+        )}
         <Text style={styles.date}>{date}</Text>
       </View>
 
@@ -40,10 +44,19 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)",
     minHeight: 140,
   },
-  topRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
   pin: { fontSize: 14 },
   pinGhost: { fontSize: 14, opacity: 0 },
   date: { color: "rgba(255,255,255,0.55)", fontWeight: "800" },
   title: { color: "white", fontSize: 14, fontWeight: "900" },
-  desc: { marginTop: 8, color: "rgba(255,255,255,0.70)", fontSize: 12, lineHeight: 16 },
+  desc: {
+    marginTop: 8,
+    color: "rgba(255,255,255,0.70)",
+    fontSize: 12,
+    lineHeight: 16,
+  },
 });

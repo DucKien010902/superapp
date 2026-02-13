@@ -7,7 +7,9 @@ export default function CreateNoteScreen() {
   const { folderId } = useLocalSearchParams<{ folderId?: string }>();
 
   useEffect(() => {
-    const id = NoteRepo.createNote({ folderId: folderId ? String(folderId) : null });
+    const id = NoteRepo.createNote({
+      folderId: folderId ? String(folderId) : null,
+    });
     router.replace(`/note/note/${id}`);
   }, []);
 

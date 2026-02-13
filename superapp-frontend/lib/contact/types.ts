@@ -56,3 +56,20 @@ export type Group = {
   updatedAt?: string;
 };
 
+export type GroupNoticeItem = {
+  id: string;
+  text: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+export type GroupNotice = {
+  id: string;
+  groupId: string;
+  title: string;
+  isPinned: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items: GroupNoticeItem[];
+};

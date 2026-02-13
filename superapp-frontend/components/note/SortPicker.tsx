@@ -45,7 +45,10 @@ export default function SortPicker({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
   sheetWrap: { flex: 1, justifyContent: "flex-end", padding: 12 },
   sheet: {
     borderRadius: 22,

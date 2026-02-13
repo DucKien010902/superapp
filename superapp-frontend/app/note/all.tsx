@@ -25,11 +25,14 @@ export default function AllNotesScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
   return (
-    <ScreenNote style={styles.screen} contentStyle={{ backgroundColor: "#070A12" }}>
+    <ScreenNote
+      style={styles.screen}
+      contentStyle={{ backgroundColor: "#070A12" }}
+    >
       <TopBar
         title="Tất cả ghi chú"
         subtitle={`${notes.length} ghi chú`}
@@ -42,8 +45,18 @@ export default function AllNotesScreen() {
         }
       />
 
-      <SideSheetMenu open={menuOpen} onClose={() => setMenuOpen(false)} allCount={notes.length} />
-      <SortPicker open={sortOpen} value={sort} onClose={() => setSortOpen(false)} onChange={setSort} />
+      <SideSheetMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        // allCount={allCount}
+        topOffset={90}
+      />
+      <SortPicker
+        open={sortOpen}
+        value={sort}
+        onClose={() => setSortOpen(false)}
+        onChange={setSort}
+      />
 
       <ScrollView contentContainerStyle={styles.content}>
         {notes.length === 0 ? (
@@ -52,7 +65,10 @@ export default function AllNotesScreen() {
           <View style={styles.grid2}>
             {notes.map((n) => (
               <View key={n.id} style={styles.cell2}>
-                <NoteCard note={n} onPress={() => router.push(`/note/note/${n.id}`)} />
+                <NoteCard
+                  note={n}
+                  onPress={() => router.push(`/note/note/${n.id}`)}
+                />
               </View>
             ))}
           </View>

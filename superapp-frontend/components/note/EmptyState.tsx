@@ -1,7 +1,13 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-export default function EmptyState({ title, desc }: { title: string; desc?: string }) {
+export default function EmptyState({
+  title,
+  desc,
+}: {
+  title: string;
+  desc?: string;
+}) {
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>{title}</Text>

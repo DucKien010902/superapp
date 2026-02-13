@@ -34,7 +34,7 @@ export default function ScreenNote({
         style={[
           styles.content,
           {
-            paddingTop: insets.top + top +40,
+            paddingTop: insets.top + top + 40,
             // ✅ chừa safe-area + extra bottom + chiều cao tab bar
             paddingBottom: insets.bottom + bottom + tabBarHeight,
           },

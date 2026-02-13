@@ -10,7 +10,14 @@ import {
   useRouter,
 } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 export default function NoteEditorScreen() {
   const router = useRouter();
@@ -63,7 +70,7 @@ export default function NoteEditorScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
   const isDeleted = !!note?.deletedAt;
@@ -162,21 +169,25 @@ export default function NoteEditorScreen() {
       return;
     }
 
-    Alert.alert("Bạn chưa lưu", "Thoát bây giờ sẽ mất thay đổi. Bạn muốn làm gì?", [
-      { text: "Ở lại", style: "cancel" },
-      {
-        text: "Không lưu",
-        style: "destructive",
-        onPress: exitWithoutSave,
-      },
-      {
-        text: "Lưu & thoát",
-        onPress: async () => {
-          await save();
-          leaveNow();
+    Alert.alert(
+      "Bạn chưa lưu",
+      "Thoát bây giờ sẽ mất thay đổi. Bạn muốn làm gì?",
+      [
+        { text: "Ở lại", style: "cancel" },
+        {
+          text: "Không lưu",
+          style: "destructive",
+          onPress: exitWithoutSave,
         },
-      },
-    ]);
+        {
+          text: "Lưu & thoát",
+          onPress: async () => {
+            await save();
+            leaveNow();
+          },
+        },
+      ],
+    );
   }, [isCreate, hasAnyText, isDirty, leaveNow, exitWithoutSave, save]);
 
   // ✅ chặn mọi hành động rời màn (Android back, iOS swipe, router.back...)
@@ -201,19 +212,31 @@ export default function NoteEditorScreen() {
 
   if (!note) {
     return (
-      <View style={[styles.loading, { alignItems: "center", justifyContent: "center" }]}>
+      <View
+        style={[
+          styles.loading,
+          { alignItems: "center", justifyContent: "center" },
+        ]}
+      >
         <Text style={{ color: "rgba(255,255,255,0.7)" }}>Đang tải...</Text>
       </View>
     );
   }
 
   return (
-    <ScreenNote style={styles.screen} contentStyle={{ backgroundColor: "#070A12" }}>
+    <ScreenNote
+      style={styles.screen}
+      contentStyle={{ backgroundColor: "#070A12" }}
+    >
       {/* confirm thùng rác */}
       <ConfirmDialog
         open={trashConfirm}
         title={isDeleted ? "Xoá vĩnh viễn?" : "Chuyển vào thùng rác?"}
-        desc={isDeleted ? "Không thể hoàn tác." : "Bạn có thể khôi phục trong Thùng rác."}
+        desc={
+          isDeleted
+            ? "Không thể hoàn tác."
+            : "Bạn có thể khôi phục trong Thùng rác."
+        }
         okText={isDeleted ? "Xoá" : "Chuyển"}
         danger={isDeleted}
         onCancel={() => setTrashConfirm(false)}
@@ -281,12 +304,12 @@ export default function NoteEditorScreen() {
           {isDeleted
             ? "Ghi chú trong thùng rác (chỉ xem)"
             : isCreate
-            ? hasAnyText
-              ? "Chưa lưu"
-              : "Chưa nhập gì"
-            : isDirty
-            ? "Chưa lưu"
-            : "Đã lưu"}
+              ? hasAnyText
+                ? "Chưa lưu"
+                : "Chưa nhập gì"
+              : isDirty
+                ? "Chưa lưu"
+                : "Đã lưu"}
         </Text>
       </View>
     </ScreenNote>
@@ -356,5 +379,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  hint: { flex: 1, color: "rgba(255,255,255,0.55)", fontSize: 12, fontWeight: "700" },
+  hint: {
+    flex: 1,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+    fontWeight: "700",
+  },
 });

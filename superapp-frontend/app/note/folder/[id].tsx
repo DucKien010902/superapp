@@ -31,11 +31,14 @@ export default function FolderNotesScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
   return (
-    <ScreenNote style={styles.screen} contentStyle={{ backgroundColor: "#070A12" }}>
+    <ScreenNote
+      style={styles.screen}
+      contentStyle={{ backgroundColor: "#070A12" }}
+    >
       <TopBar
         title={folder?.name ?? "Thư mục"}
         subtitle={`${items.length} ghi chú`}
@@ -48,7 +51,12 @@ export default function FolderNotesScreen() {
         }
       />
 
-      <SortPicker open={sortOpen} value={sort} onClose={() => setSortOpen(false)} onChange={setSort} />
+      <SortPicker
+        open={sortOpen}
+        value={sort}
+        onClose={() => setSortOpen(false)}
+        onChange={setSort}
+      />
 
       <ConfirmDialog
         open={confirmTrash}
@@ -68,7 +76,10 @@ export default function FolderNotesScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {items.length === 0 ? (
-          <EmptyState title="Chưa có ghi chú" desc="Nhấn ✎ để tạo ghi chú trong thư mục này." />
+          <EmptyState
+            title="Chưa có ghi chú"
+            desc="Nhấn ✎ để tạo ghi chú trong thư mục này."
+          />
         ) : (
           <View style={styles.grid2}>
             {items.map((n) => (
@@ -89,12 +100,20 @@ export default function FolderNotesScreen() {
                       }}
                       style={[styles.actionBtn, styles.ok]}
                     >
-                      <Text style={styles.actionText}>{n.pinned ? "Bỏ ghim" : "Ghim"}</Text>
+                      <Text style={styles.actionText}>
+                        {n.pinned ? "Bỏ ghim" : "Ghim"}
+                      </Text>
                     </Pressable>
-                    <Pressable onPress={() => setConfirmTrash(true)} style={[styles.actionBtn, styles.danger]}>
+                    <Pressable
+                      onPress={() => setConfirmTrash(true)}
+                      style={[styles.actionBtn, styles.danger]}
+                    >
                       <Text style={styles.actionText}>Xoá</Text>
                     </Pressable>
-                    <Pressable onPress={() => setSelected(null)} style={[styles.actionBtn, styles.ghost]}>
+                    <Pressable
+                      onPress={() => setSelected(null)}
+                      style={[styles.actionBtn, styles.ghost]}
+                    >
                       <Text style={styles.actionText}>Đóng</Text>
                     </Pressable>
                   </View>
@@ -105,7 +124,14 @@ export default function FolderNotesScreen() {
         )}
       </ScrollView>
 
-      <Fab onPress={() => router.push({ pathname: "/note/note/create", params: { folderId } } as any)} />
+      <Fab
+        onPress={() =>
+          router.push({
+            pathname: "/note/note/create",
+            params: { folderId },
+          } as any)
+        }
+      />
     </ScreenNote>
   );
 }

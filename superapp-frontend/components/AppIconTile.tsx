@@ -9,11 +9,19 @@ type Props = {
   tone?: "violet" | "blue" | "green" | "orange";
 };
 
-export default function AppIconTile({ label, icon, onPress, tone = "blue" }: Props) {
+export default function AppIconTile({
+  label,
+  icon,
+  onPress,
+  tone = "blue",
+}: Props) {
   const toneStyle = TONE[tone];
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.wrap, pressed && styles.pressed]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.wrap, pressed && styles.pressed]}
+    >
       <View style={[styles.icon, toneStyle]}>
         <Ionicons name={icon} size={28} color="white" />
       </View>
@@ -25,10 +33,22 @@ export default function AppIconTile({ label, icon, onPress, tone = "blue" }: Pro
 }
 
 const TONE = StyleSheet.create({
-  violet: { backgroundColor: "rgba(124, 92, 255, 1)", borderColor: "rgba(124, 92, 255, 0.35)" },
-  blue: { backgroundColor: "rgba(59, 130, 246, 1)", borderColor: "rgba(59, 130, 246, 0.32)" },
-  green: { backgroundColor: "rgba(16, 185, 129, 1)", borderColor: "rgba(16, 185, 129, 0.32)" },
-  orange: { backgroundColor: "rgba(249, 115, 22, 1)", borderColor: "rgba(249, 115, 22, 0.32)" },
+  violet: {
+    backgroundColor: "rgba(124, 92, 255, 1)",
+    borderColor: "rgba(124, 92, 255, 0.35)",
+  },
+  blue: {
+    backgroundColor: "rgba(59, 130, 246, 1)",
+    borderColor: "rgba(59, 130, 246, 0.32)",
+  },
+  green: {
+    backgroundColor: "rgba(16, 185, 129, 1)",
+    borderColor: "rgba(16, 185, 129, 0.32)",
+  },
+  orange: {
+    backgroundColor: "rgba(249, 115, 22, 1)",
+    borderColor: "rgba(249, 115, 22, 0.32)",
+  },
 });
 
 const styles = StyleSheet.create({

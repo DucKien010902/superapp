@@ -5,7 +5,6 @@ import type { Folder, Note, SortKey } from "./types";
 import { makePreview, nowIso } from "./ultils";
 initNoteDb();
 
-
 function sortSql(sort: SortKey) {
   switch (sort) {
     case "updated_asc":
@@ -24,7 +23,7 @@ export const NoteRepo = {
   // ----- folders -----
   listFolders(): Folder[] {
     return db.getAllSync<Folder>(
-      `SELECT * FROM folders WHERE isSystem=0 ORDER BY "order" ASC, updatedAt DESC`
+      `SELECT * FROM folders WHERE isSystem=0 ORDER BY "order" ASC, updatedAt DESC`,
     );
   },
 
@@ -40,7 +39,7 @@ export const NoteRepo = {
     db.runSync(
       `INSERT INTO folders (id, name, "order", isSystem, createdAt, updatedAt)
        VALUES (?, ?, 0, 0, ?, ?)`,
-      [id, name.trim(), now, now]
+      [id, name.trim(), now, now],
     );
     return id;
   },
@@ -68,26 +67,40 @@ export const NoteRepo = {
     includeDeleted?: boolean;
     sort?: SortKey;
   }): Note[] {
-    const { folderId = undefined, includeDeleted = false, sort = "updated_desc" } = params;
+    const {
+      folderId = undefined,
+      includeDeleted = false,
+      sort = "updated_desc",
+    } = params;
 
     const whereDeleted = includeDeleted ? `1=1` : `deletedAt IS NULL`;
     if (folderId === undefined) {
-      return db.getAllSync<Note>(`SELECT * FROM notes WHERE ${whereDeleted} ${sortSql(sort)}`);
+      return db.getAllSync<Note>(
+        `SELECT * FROM notes WHERE ${whereDeleted} ${sortSql(sort)}`,
+      );
     }
     if (folderId === null) {
-      return db.getAllSync<Note>(`SELECT * FROM notes WHERE ${whereDeleted} AND folderId IS NULL ${sortSql(sort)}`);
+      return db.getAllSync<Note>(
+        `SELECT * FROM notes WHERE ${whereDeleted} AND folderId IS NULL ${sortSql(sort)}`,
+      );
     }
     return db.getAllSync<Note>(
       `SELECT * FROM notes WHERE ${whereDeleted} AND folderId=? ${sortSql(sort)}`,
-      [folderId]
+      [folderId],
     );
   },
 
   getNote(id: string): Note | null {
-    return db.getFirstSync<Note>(`SELECT * FROM notes WHERE id=?`, [id]) ?? null;
+    return (
+      db.getFirstSync<Note>(`SELECT * FROM notes WHERE id=?`, [id]) ?? null
+    );
   },
 
-  createNote(input: { folderId?: string | null; title?: string; content?: string }) {
+  createNote(input: {
+    folderId?: string | null;
+    title?: string;
+    content?: string;
+  }) {
     const id = Crypto.randomUUID();
     const now = nowIso();
     const title = (input.title ?? "").trim();
@@ -97,12 +110,15 @@ export const NoteRepo = {
     db.runSync(
       `INSERT INTO notes (id, folderId, title, content, preview, pinned, createdAt, updatedAt, deletedAt, color)
        VALUES (?, ?, ?, ?, ?, 0, ?, ?, NULL, NULL)`,
-      [id, input.folderId ?? null, title, content, preview, now, now]
+      [id, input.folderId ?? null, title, content, preview, now, now],
     );
     return id;
   },
 
-  updateNote(id: string, patch: { title?: string; content?: string; folderId?: string | null }) {
+  updateNote(
+    id: string,
+    patch: { title?: string; content?: string; folderId?: string | null },
+  ) {
     const current = this.getNote(id);
     const title = (patch.title ?? current?.title ?? "").trim();
     const content = patch.content ?? current?.content ?? "";
@@ -112,7 +128,7 @@ export const NoteRepo = {
       `UPDATE notes
        SET title=?, content=?, preview=?, folderId=COALESCE(?, folderId), updatedAt=?
        WHERE id=?`,
-      [title, content, preview, patch.folderId ?? null, nowIso(), id]
+      [title, content, preview, patch.folderId ?? null, nowIso(), id],
     );
   },
 
@@ -122,23 +138,30 @@ export const NoteRepo = {
        SET pinned = CASE pinned WHEN 1 THEN 0 ELSE 1 END,
            updatedAt=?
        WHERE id=?`,
-      [nowIso(), id]
+      [nowIso(), id],
     );
   },
 
   moveToTrash(id: string) {
     const now = nowIso();
-    db.runSync(`UPDATE notes SET deletedAt=?, updatedAt=? WHERE id=?`, [now, now, id]);
+    db.runSync(`UPDATE notes SET deletedAt=?, updatedAt=? WHERE id=?`, [
+      now,
+      now,
+      id,
+    ]);
   },
 
   listTrash(sort: SortKey = "updated_desc") {
     return db.getAllSync<Note>(
-      `SELECT * FROM notes WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC`
+      `SELECT * FROM notes WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC`,
     );
   },
 
   restoreFromTrash(id: string) {
-    db.runSync(`UPDATE notes SET deletedAt=NULL, updatedAt=? WHERE id=?`, [nowIso(), id]);
+    db.runSync(`UPDATE notes SET deletedAt=NULL, updatedAt=? WHERE id=?`, [
+      nowIso(),
+      id,
+    ]);
   },
 
   deleteForever(id: string) {
@@ -151,12 +174,14 @@ export const NoteRepo = {
       `SELECT * FROM notes
        WHERE deletedAt IS NULL AND (title LIKE ? OR content LIKE ?)
        ${sortSql(sort)}`,
-      [s, s]
+      [s, s],
     );
   },
 
   countAllNotes() {
-    const r = db.getFirstSync<{ c: number }>(`SELECT COUNT(*) as c FROM notes WHERE deletedAt IS NULL`);
+    const r = db.getFirstSync<{ c: number }>(
+      `SELECT COUNT(*) as c FROM notes WHERE deletedAt IS NULL`,
+    );
     return r?.c ?? 0;
   },
   deleteForeverMany(ids: string[]) {

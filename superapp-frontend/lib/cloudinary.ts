@@ -4,7 +4,9 @@ export const CLOUDINARY_UPLOAD_PRESET = "supperapp_unsigned_upload";
 
 type UploadResult = { secure_url: string };
 
-export async function uploadImageToCloudinary(fileUri: string): Promise<string> {
+export async function uploadImageToCloudinary(
+  fileUri: string,
+): Promise<string> {
   const form = new FormData();
 
   // RN/Expo: phải gửi đúng kiểu { uri, name, type }
@@ -25,7 +27,7 @@ export async function uploadImageToCloudinary(fileUri: string): Promise<string> 
     {
       method: "POST",
       body: form,
-    }
+    },
   );
 
   if (!res.ok) {

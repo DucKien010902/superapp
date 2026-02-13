@@ -23,7 +23,9 @@ export default function ContactTabsLayout() {
         tabBarBackground: () => (
           <View style={{ flex: 1 }}>
             <View style={{ flex: 1, backgroundColor: tabWhite }} />
-            <View style={{ height: bottomInset, backgroundColor: bottomBlack }} />
+            <View
+              style={{ height: bottomInset, backgroundColor: bottomBlack }}
+            />
           </View>
         ),
         tabBarStyle: {
@@ -40,7 +42,6 @@ export default function ContactTabsLayout() {
         tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
       }}
     >
-
       {/* ✅ đổi contacts -> index (tab danh bạ) */}
       <Tabs.Screen
         name="contacts"
@@ -48,26 +49,26 @@ export default function ContactTabsLayout() {
           title: "Liên hệ",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-            name={focused ? "person" : "person-outline"}
-            size={size}
-            color={color}
+              name={focused ? "person" : "person-outline"}
+              size={size}
+              color={color}
             />
           ),
         }}
       />
-<Tabs.Screen
-  name="groups"
-  options={{
-    title: "Nhóm",
-    tabBarIcon: ({ color, size, focused }) => (
-      <Ionicons
-        name={focused ? "people" : "people-outline"}
-        size={size}
-        color={color}
+      <Tabs.Screen
+        name="groups"
+        options={{
+          title: "Nhóm",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "people" : "people-outline"}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
       />
-    ),
-  }}
-/>
 
       <Tabs.Screen
         name="profile"

@@ -5,7 +5,14 @@ import { NoteRepo } from "@/lib/note/repo";
 import type { Folder } from "@/lib/note/types";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 export default function FolderManageScreen() {
   const router = useRouter();
@@ -22,11 +29,14 @@ export default function FolderManageScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
   return (
-    <ScreenNote style={styles.screen} contentStyle={{ backgroundColor: "#070A12" }}>
+    <ScreenNote
+      style={styles.screen}
+      contentStyle={{ backgroundColor: "#070A12" }}
+    >
       <TopBar
         title="Quản lý thư mục"
         subtitle={`${folders.length} thư mục`}
@@ -41,7 +51,10 @@ export default function FolderManageScreen() {
 
       {/* Create */}
       <Modal visible={createOpen} transparent animationType="fade">
-        <Pressable style={styles.backdrop} onPress={() => setCreateOpen(false)} />
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => setCreateOpen(false)}
+        />
         <View style={styles.modalCenter}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Tạo thư mục</Text>
@@ -54,7 +67,10 @@ export default function FolderManageScreen() {
               autoFocus
             />
             <View style={styles.modalRow}>
-              <Pressable onPress={() => setCreateOpen(false)} style={[styles.btn, styles.ghost]}>
+              <Pressable
+                onPress={() => setCreateOpen(false)}
+                style={[styles.btn, styles.ghost]}
+              >
                 <Text style={styles.btnText}>Huỷ</Text>
               </Pressable>
               <Pressable
@@ -77,7 +93,10 @@ export default function FolderManageScreen() {
 
       {/* Rename */}
       <Modal visible={renameOpen} transparent animationType="fade">
-        <Pressable style={styles.backdrop} onPress={() => setRenameOpen(false)} />
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => setRenameOpen(false)}
+        />
         <View style={styles.modalCenter}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Đổi tên thư mục</Text>
@@ -90,7 +109,10 @@ export default function FolderManageScreen() {
               autoFocus
             />
             <View style={styles.modalRow}>
-              <Pressable onPress={() => setRenameOpen(false)} style={[styles.btn, styles.ghost]}>
+              <Pressable
+                onPress={() => setRenameOpen(false)}
+                style={[styles.btn, styles.ghost]}
+              >
                 <Text style={styles.btnText}>Huỷ</Text>
               </Pressable>
               <Pressable
@@ -190,8 +212,16 @@ const styles = StyleSheet.create({
   danger: { backgroundColor: "#DC2626" },
   smallText: { color: "white", fontWeight: "900" },
 
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
-  modalCenter: { flex: 1, alignItems: "center", justifyContent: "center", padding: 18 },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  modalCenter: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+  },
   modalCard: {
     width: "100%",
     maxWidth: 420,
@@ -212,7 +242,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  modalRow: { flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 14 },
+  modalRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 14,
+  },
   btn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
   ok: { backgroundColor: "#2563EB" },
   btnText: { color: "white", fontWeight: "900" },

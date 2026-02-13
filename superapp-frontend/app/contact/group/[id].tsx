@@ -1,5 +1,6 @@
 import Screen from "@/components/Screen";
 import ContactRow from "@/components/contact/ContactRow";
+import GroupAboutTab from "@/components/contact/group/GroupAboutTab";
 import { useAuth } from "@/lib/auth";
 import {
   addGroupMember,
@@ -9,12 +10,15 @@ import {
   fetchMe,
   openGroupChat,
   removeGroupMember,
+  setGroupMemberRole,
 } from "@/lib/contact/api";
 import type { Friend, Group } from "@/lib/contact/types";
 import { Ionicons } from "@expo/vector-icons";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, Text, TextInput, View } from "react-native";
+import { Alert, FlatList, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ...
 const router = useRouter();
@@ -130,6 +134,9 @@ function SectionTitle({ icon, title }: { icon: any; title: string }) {
 export default function GroupDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuth();
+
+   const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
   
 
   const [tab, setTab] = useState<TabKey>("about");
@@ -232,6 +239,15 @@ export default function GroupDetail() {
       setBusyAdd(false);
     }
   };
+  const onSetOwner = async (userId: string) => {
+  if (!token || !id) return;
+  try {
+    await setGroupMemberRole(token, id, userId, "owner");
+    await reload();
+  } catch (e: any) {
+    Alert.alert("Lỗi", e?.message || "Không set owner được");
+  }
+};
 
   if (loading) {
     return (
@@ -287,6 +303,12 @@ export default function GroupDetail() {
   return (
     <Screen style={{ backgroundColor: "#F3F4F6" }} top={12} bottom={0}>
       {/* ===== Header card ===== */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          // paddingBottom: tabBarHeight + insets.bottom + 16, // ✅ chừa đúng chỗ tab bar
+        }}
+      >
       <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 }}>
         <Card>
           <View style={{ padding: 14 }}>
@@ -332,40 +354,23 @@ export default function GroupDetail() {
 
       {/* ===== Content ===== */}
       {tab === "about" && (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-          <SectionTitle icon="megaphone-outline" title="Thông báo" />
-          <Card>
-            <View style={{ padding: 14 }}>
-              <Text style={{ fontSize: 12, color: "#6B7280" }}>
-                (Bạn sẽ làm: admin đăng thông báo, pin thông báo, lịch sử thông báo)
-              </Text>
-            </View>
-          </Card>
-
-          {canManage && (
-            <Pressable
-              onPress={() => {
-                // TODO: mở màn chỉnh sửa nhóm
-              }}
-              style={{
-                marginTop: 12,
-                paddingVertical: 12,
-                borderRadius: 14,
-                backgroundColor: "#1877F2",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ color: "white", fontWeight: "900" }}>Chỉnh sửa thông tin nhóm</Text>
-            </Pressable>
-          )}
-        </View>
-      )}
+  <GroupAboutTab
+    token={token || ""}
+    groupId={String(id || "")}
+    group={group}
+    isOwner={myRole === "owner"} // owner chỉnh trực tiếp
+    // onUpdated={async () => {
+    //   // sau khi sửa group xong -> reload lại group detail
+    //   await reload();
+    // }}
+  />
+)}
 
       {tab === "members" && (
         <View style={{ flex: 1, paddingHorizontal: 16 }}>
           {/* Add members */}
           {canManage && (
-            <View style={{ paddingTop: 6, paddingBottom: 12 }}>
+            <View style={{ paddingTop: 6, paddingBottom: 24 }}>
               <Pressable
                 onPress={() => setPickerOpen((v) => !v)}
                 style={{
@@ -498,6 +503,10 @@ export default function GroupDetail() {
                 !(myRole === "admin" && item.role === "admin") &&
                 !isMe;
 
+                const canMakeOwner =
+  myRole === "owner" && // chỉ owner mới set owner
+  item.role !== "owner" &&
+  !isMe; // tuỳ bạn: có cho tự set không? thường không cần
               return (
                 <View style={{ marginBottom: 10 }}>
                   <Card>
@@ -516,6 +525,35 @@ export default function GroupDetail() {
                           <Pill label={roleLabel(item.role)} tone={item.role === "owner" ? "blue" : "neutral"} />
                           {isMe && <Pill label="Bạn" tone="neutral" />}
                         </View>
+                        {canMakeOwner && (
+    <Pressable
+      onPress={() =>
+        Alert.alert(
+          "Thêm Owner",
+          "Bạn muốn thêm người này làm Owner? (tối đa 2 owner)",
+          [
+            { text: "Hủy", style: "cancel" },
+            { text: "Đồng ý", onPress: () => onSetOwner(item.friend.id) },
+          ]
+        )
+      }
+      style={{
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 999,
+        backgroundColor: "#DBEAFE",
+        borderWidth: 1,
+        borderColor: "#93C5FD",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
+      <Ionicons name="key-outline" size={16} color="#1D4ED8" />
+      <Text style={{ fontSize: 12, fontWeight: "900", color: "#1D4ED8" }}>Owner</Text>
+    </Pressable>
+  )}
+
 
                         {canKick && (
                           <Pressable
@@ -564,7 +602,7 @@ export default function GroupDetail() {
           <Card>
             <View style={{ padding: 14 }}>
               <Text style={{ fontSize: 12, color: "#6B7280" }}>
-                (Bạn sẽ làm: upload ảnh, hiển thị grid, xem full)
+                (Upload ảnh, hiển thị grid, xem full)
               </Text>
             </View>
           </Card>
@@ -575,7 +613,7 @@ export default function GroupDetail() {
           <Card>
             <View style={{ padding: 14 }}>
               <Text style={{ fontSize: 12, color: "#6B7280" }}>
-                (Bạn sẽ làm: upload file, list file, preview/download)
+                (Upload file, list file, preview/download)
               </Text>
             </View>
           </Card>
@@ -638,6 +676,7 @@ export default function GroupDetail() {
 
         </View>
       )}
+      </ScrollView>
     </Screen>
   );
 }

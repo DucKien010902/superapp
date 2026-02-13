@@ -302,17 +302,15 @@ export default function ChatScreen() {
             fallbackText={otherName?.[0]?.toUpperCase() || "U"}
           />
           <View style={{ flex: 1 }}>
-            <Text
-              style={{ fontSize: 15, fontWeight: "900", color: "#111827" }}
-            >
+            <Text style={{ fontSize: 15, fontWeight: "900", color: "#111827" }}>
               {otherName}
             </Text>
             <Text style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>
               {loading
                 ? "Đang tải..."
                 : otherUserId
-                ? `ID: ${otherUserId}`
-                : "Cuộc trò chuyện"}
+                  ? `ID: ${otherUserId}`
+                  : "Cuộc trò chuyện"}
             </Text>
           </View>
         </View>
@@ -398,11 +396,7 @@ export default function ChatScreen() {
                         paddingHorizontal: 12,
                         paddingVertical: 10,
                         borderTopLeftRadius: mine ? 18 : prevSame ? 8 : 18,
-                        borderTopRightRadius: mine
-                          ? prevSame
-                            ? 8
-                            : 18
-                          : 18,
+                        borderTopRightRadius: mine ? (prevSame ? 8 : 18) : 18,
                         borderBottomLeftRadius: mine ? 18 : nextSame ? 8 : 18,
                         borderBottomRightRadius: mine
                           ? nextSame
@@ -452,7 +446,9 @@ export default function ChatScreen() {
               borderTopColor: "#F3F4F6",
             }}
           >
-            <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-end" }}>
+            <View
+              style={{ flexDirection: "row", gap: 10, alignItems: "flex-end" }}
+            >
               <View
                 style={{
                   flex: 1,

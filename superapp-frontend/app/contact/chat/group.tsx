@@ -338,8 +338,8 @@ export default function GroupChatScreen() {
               {loading
                 ? "Đang tải..."
                 : memberCount
-                ? `${memberCount} thành viên`
-                : "Nhóm chat"}
+                  ? `${memberCount} thành viên`
+                  : "Nhóm chat"}
             </Text>
           </View>
         </View>
@@ -369,7 +369,9 @@ export default function GroupChatScreen() {
 
               // ✅ LẤY TÊN/AVATAR TỪ item.sender (do BE trả về)
               const senderName = mine ? myName : pickSenderName(item.sender);
-              const senderAvatar = mine ? myAvatar : pickSenderAvatar(item.sender);
+              const senderAvatar = mine
+                ? myAvatar
+                : pickSenderAvatar(item.sender);
 
               // inverted => prev/next block detection
               const prev = items[index + 1];
@@ -440,7 +442,11 @@ export default function GroupChatScreen() {
                         borderTopLeftRadius: mine ? 18 : prevSame ? 8 : 18,
                         borderTopRightRadius: mine ? (prevSame ? 8 : 18) : 18,
                         borderBottomLeftRadius: mine ? 18 : nextSame ? 8 : 18,
-                        borderBottomRightRadius: mine ? (nextSame ? 8 : 18) : 18,
+                        borderBottomRightRadius: mine
+                          ? nextSame
+                            ? 8
+                            : 18
+                          : 18,
                       }}
                     >
                       <Text
@@ -484,7 +490,9 @@ export default function GroupChatScreen() {
               borderTopColor: "#F3F4F6",
             }}
           >
-            <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-end" }}>
+            <View
+              style={{ flexDirection: "row", gap: 10, alignItems: "flex-end" }}
+            >
               <View
                 style={{
                   flex: 1,
@@ -520,7 +528,8 @@ export default function GroupChatScreen() {
                   paddingHorizontal: 14,
                   paddingVertical: 12,
                   borderRadius: 16,
-                  backgroundColor: sending || !text.trim() ? "#9CA3AF" : "#111827",
+                  backgroundColor:
+                    sending || !text.trim() ? "#9CA3AF" : "#111827",
                   justifyContent: "center",
                 }}
               >
