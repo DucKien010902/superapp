@@ -47,26 +47,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const t = await AsyncStorage.getItem(TOKEN_KEY);
-        const uRaw = await AsyncStorage.getItem(USER_KEY);
+  (async () => {
+    setLoading(true);
+    try {
+      // 1. Lấy dữ liệu cũ từ máy để hiển thị ngay
+      const t = await AsyncStorage.getItem(TOKEN_KEY);
+      const uRaw = await AsyncStorage.getItem(USER_KEY);
 
+      if (t) {
         setToken(t);
-        setUser(uRaw ? JSON.parse(uRaw) : null);
-
-        // ✅ nếu có token mà chưa có user -> fetch me
-        if (t && !uRaw) {
-          await refreshMe(t);
+        if (uRaw) {
+          setUser(JSON.parse(uRaw));
         }
-      } finally {
-        setLoading(false);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
+        // 2. QUAN TRỌNG: Gọi API lấy thông tin mới nhất từ server
+        // Nếu token hết hạn hoặc role thay đổi, hàm này sẽ xử lý
+        try {
+          await refreshMe(t);
+        } catch (error: any) {
+          // Nếu API báo lỗi (ví dụ 401 Unauthorized), tự động logout
+          if (error?.status === 401) {
+            await signOut();
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Lỗi khởi tạo Auth:", e);
+    } finally {
+      setLoading(false);
+    }
+  })();
+}, []);
   const signIn = async (newToken: string) => {
     setToken(newToken);
     await AsyncStorage.setItem(TOKEN_KEY, newToken);
