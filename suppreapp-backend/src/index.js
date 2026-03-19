@@ -10,6 +10,7 @@ import friendsRoutes from "./routes/friends.routes.js";
 import groups2Routes from "./routes/groups.routes.js";
 import messagesRoutes from "./routes/messages.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import versionRoutes from "./routes/version.routes.js";
 
 import { requireAuth } from "./middlewares/auth.middleware.js";
 import { browserGate } from "./middlewares/browserGate.middleware.js";
@@ -52,6 +53,7 @@ app.use("/api/friends", requireAuth, friendsRoutes);
 app.use("/api/groups", requireAuth, groups2Routes);
 app.use("/api/messages", requireAuth, messagesRoutes);
 app.use("/api/admin", requireAuth, adminRoutes);
+app.use('/api/version',requireAuth, versionRoutes)
 
 // error handler
 app.use((err, req, res, next) => {

@@ -49,6 +49,20 @@ const UserSchema = new mongoose.Schema(
     profile: { type: ProfileSchema, required: true },
 
     settings: { type: SettingsSchema, default: () => ({}) },
+    evaluation: {
+    score: { type: String, default: "" },
+    attitude: { type: String, default: "" },
+    skill: { type: String, default: "" },
+    general: { 
+      type: [String], 
+      validate: [val => val.length <= 3, '{PATH} exceeds the limit of 3'] // Khóa cứng max 3 ở CSDL
+    },
+    detailed: [{
+      text: { type: String, default: "" },
+      date: { type: String, default: "" }
+    }]
+  },
+lastViewedVersion: { type: String, default: "" }, // <--- THÊM DÒNG NÀY
   },
   { timestamps: true }
 );

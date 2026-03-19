@@ -24,6 +24,8 @@ function pickUserPublic(u) {
     id: String(u._id),
     role: u.role,
     profile: u.profile,
+    evaluation: u.evaluation, // <--- THÊM DÒNG NÀY ĐỂ TRẢ VỀ EVALUATION
+lastViewedVersion: u.lastViewedVersion,
     phone: u.phone,
     createdAt: u.createdAt,
   };
@@ -80,6 +82,13 @@ router.post("/create-friend", requireAdmin, async (req, res, next) => {
         education: "",
         links: [],
       },
+      evaluation: { // <--- THÊM INITIAL CHO EVALUATION
+        score: "",
+        attitude: "",
+        skill: "",
+        general: [],
+        detailed: []
+      },
       settings: {},
     });
 
@@ -105,6 +114,8 @@ router.post("/create-friend", requireAdmin, async (req, res, next) => {
     return next(err);
   }
 });
+
+// --- Hàm hỗ trợ lọc data update Profile ---
 function pickProfilePatch(p = {}) {
   const out = {};
   const allow = [
@@ -134,27 +145,65 @@ function pickProfilePatch(p = {}) {
   return out;
 }
 
+// --- Hàm hỗ trợ lọc data update Evaluation ---
+function pickEvaluationPatch(e = {}) {
+  const out = {};
+  if (typeof e.score === "string") out.score = e.score;
+  if (typeof e.attitude === "string") out.attitude = e.attitude;
+  if (typeof e.skill === "string") out.skill = e.skill;
+  
+  // Lọc array general (chỉ lấy max 3 phần tử string)
+  if (Array.isArray(e.general)) {
+    out.general = e.general.map(String).slice(0, 3);
+  }
+  
+  // Lọc array detailed (lấy các object có text và date)
+  if (Array.isArray(e.detailed)) {
+    out.detailed = e.detailed.map(item => ({
+      text: String(item.text || ""),
+      date: String(item.date || "")
+    }));
+  }
+  return out;
+}
+
 /**
  * PATCH /api/admin/users/:id
- * body: { profile: {...} }
+ * body: { profile?: {...}, evaluation?: {...} }
  */
 router.patch("/users/:id", requireAdmin, async (req, res, next) => {
   try {
     const userId = String(req.params.id || "");
-    const profilePatch = pickProfilePatch(req.body?.profile || {});
+    const updatePayload = {};
 
-    if (Object.keys(profilePatch).length === 0) {
-      return res.status(400).json({ message: "Nothing to update" });
+    // 1. Xử lý update Profile
+    if (req.body?.profile) {
+      const profilePatch = pickProfilePatch(req.body.profile);
+      if ("displayName" in profilePatch && !String(profilePatch.displayName || "").trim()) {
+        return res.status(400).json({ message: "displayName is required" });
+      }
+      
+      // Chuyển format để update nested object trong MongoDB (VD: "profile.displayName")
+      for (const key in profilePatch) {
+        updatePayload[`profile.${key}`] = profilePatch[key];
+      }
     }
 
-    // displayName vẫn required theo schema
-    if ("displayName" in profilePatch && !String(profilePatch.displayName || "").trim()) {
-      return res.status(400).json({ message: "displayName is required" });
+    // 2. Xử lý update Evaluation
+    if (req.body?.evaluation) {
+      const evalPatch = pickEvaluationPatch(req.body.evaluation);
+      for (const key in evalPatch) {
+        updatePayload[`evaluation.${key}`] = evalPatch[key];
+      }
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      return res.status(400).json({ message: "Nothing to update" });
     }
 
     const updated = await User.findByIdAndUpdate(
       userId,
-      { $set: { profile: { ...profilePatch } } },
+      { $set: updatePayload },
       { new: true }
     ).lean();
 
@@ -166,10 +215,43 @@ router.patch("/users/:id", requireAdmin, async (req, res, next) => {
         email: updated.email || "",
         role: updated.role,
         profile: updated.profile,
+        evaluation: updated.evaluation, // <--- TRẢ VỀ EVALUATION ĐỂ FRONTEND CẬP NHẬT
         createdAt: updated.createdAt,
         updatedAt: updated.updatedAt,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/admin/users/:id
+ * Xóa vĩnh viễn user và các quan hệ bạn bè liên quan
+ */
+router.delete("/users/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || "");
+
+    // Không cho phép tự xóa tài khoản Admin đang đăng nhập bằng API này
+    if (userId === req.user.id) {
+      return res.status(400).json({ message: "Admin cannot delete themselves here" });
+    }
+
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Xóa User khỏi DB
+    await User.findByIdAndDelete(userId);
+
+    // Tùy chọn: Xóa sạch các quan hệ bạn bè liên quan đến User này để dọn dẹp DB
+    await Friendship.deleteMany({
+      $or: [{ requesterId: userId }, { addresseeId: userId }]
+    });
+
+    return res.json({ ok: true, message: "User has been permanently deleted" });
   } catch (err) {
     next(err);
   }

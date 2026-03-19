@@ -259,7 +259,21 @@ router.get("/:id", async (req, res, next) => {
       relationship = { status: rel.status, direction: dir };
     }
 
-    res.json({ user: pickUserPublic(target), relationship });
+    // --- BẮT ĐẦU ĐOẠN SỬA ---
+    // 1. Lấy thông tin an toàn (Public)
+    const safeUserData = pickUserPublic(target);
+
+    // 2. Kẻ gác cổng: Nếu người đang gửi request có role là "admin"
+    // thì nhét thêm cái bí mật "evaluation" vào cho họ xem
+    if (req.user?.role === "admin") {
+      safeUserData.evaluation = target.evaluation || {
+        score: "", attitude: "", skill: "", general: [], detailed: []
+      };
+    }
+    // --- KẾT THÚC ĐOẠN SỬA ---
+
+    // Gửi trả về cho Frontend
+    res.json({ user: safeUserData, relationship });
   } catch (e) {
     next(e);
   }
