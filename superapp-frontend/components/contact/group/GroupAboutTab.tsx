@@ -3,10 +3,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import {
-    createGroupNotice,
-    createGroupNoticeItem,
-    fetchGroupNotices,
-    updateGroup,
+  createGroupNotice,
+  createGroupNoticeItem,
+  fetchGroupNotices,
+  updateGroup,
 } from "@/lib/contact/api";
 import type { Group, GroupNotice } from "@/lib/contact/types";
 
@@ -451,7 +451,7 @@ export default function GroupAboutTab({
                 width: 38,
                 height: 38,
                 borderRadius: 14,
-                backgroundColor: "#111827",
+                backgroundColor: "#1340a1",
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -609,7 +609,7 @@ export default function GroupAboutTab({
                               width: 34,
                               height: 34,
                               borderRadius: 17,
-                              backgroundColor: "#111827",
+                              backgroundColor: "#1340a1",
                               alignItems: "center",
                               justifyContent: "center",
                             }}

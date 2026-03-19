@@ -32,7 +32,7 @@ export default function ContactRow({
           width: 44,
           height: 44,
           borderRadius: 18,
-          backgroundColor: "#111827",
+          backgroundColor: "#1340a1",
           alignItems: "center",
           justifyContent: "center",
           marginRight: 12,

@@ -107,7 +107,7 @@ function PrimaryButton({
       })}
     >
       <LinearGradient
-        colors={["#111827", "#0B1220"]}
+        colors={["#1340a1", "#1340a1"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
@@ -319,7 +319,7 @@ export default function RegisterScreen() {
                 onPress={() => router.replace("/login")}
                 disabled={busy}
               >
-                <Text style={{ color: "#111827", fontWeight: "900" }}>
+                <Text style={{ color: "#1340a1", fontWeight: "900" }}>
                   Đăng nhập
                 </Text>
               </Pressable>

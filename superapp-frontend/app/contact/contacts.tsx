@@ -178,7 +178,7 @@ export default function ContactsScreen() {
                 width: 36,
                 height: 36,
                 borderRadius: 18,
-                backgroundColor: "#111827",
+                backgroundColor: "#1340a1",
                 alignItems: "center",
                 justifyContent: "center",
               }}

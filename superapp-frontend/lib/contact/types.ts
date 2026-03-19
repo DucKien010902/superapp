@@ -1,3 +1,15 @@
+export interface EvaluationItem {
+  text: string;
+  date: string; // VD: '2023-10-25'
+}
+
+export interface UserEvaluation {
+  score?: string;     // Chấm điểm
+  attitude?: string;  // Thái độ
+  skill?: string;     // Trình độ
+  general?: string[]; // Đánh giá tổng quan (Tối đa 3)
+  detailed?: EvaluationItem[]; // Đánh giá chi tiết
+}
 export type UserPublic = {
   id: string;
   email: string;
@@ -19,6 +31,7 @@ export type UserPublic = {
     education?: string;
     links?: Array<{ label: string; url: string }>;
   };
+  evaluation?: UserEvaluation; // <--- THÊM DÒNG NÀY
   createdAt?: string;
   updatedAt?: string;
 };

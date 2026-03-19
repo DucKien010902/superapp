@@ -119,7 +119,7 @@ export default function GroupsScreen() {
             paddingHorizontal: 12,
             paddingVertical: 10,
             borderRadius: 14,
-            backgroundColor: "#111827",
+            backgroundColor: "#1340a1",
           }}
         >
           <Text style={{ color: "white", fontWeight: "900", fontSize: 12 }}>

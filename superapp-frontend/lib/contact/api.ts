@@ -4,6 +4,7 @@ import type {
   FriendRequestItem,
   Group,
   Relationship,
+  UserEvaluation,
   UserPublic,
 } from "./types";
 
@@ -122,16 +123,28 @@ export async function adminCreateFriend(
   );
   return r.user;
 }
+// Cập nhật hàm update để nhận thêm evaluation
 export async function adminUpdateUser(
   token: string,
   userId: string,
-  payload: { profile?: Partial<UserPublic["profile"]> },
+  payload: { 
+    profile?: Partial<UserPublic["profile"]>,
+    evaluation?: UserEvaluation // Thêm dòng này
+  },
 ): Promise<UserPublic> {
   const r = await http<{ user: UserPublic }>(`/api/admin/users/${userId}`, token, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
   return r.user;
+}
+
+// Thêm hàm xóa User
+export async function adminDeleteUser(token: string, userId: string): Promise<boolean> {
+  const r = await http<{ ok: boolean }>(`/api/admin/users/${userId}`, token, {
+    method: "DELETE",
+  });
+  return r.ok;
 }
 
 // ===== MESSAGES

@@ -4,7 +4,7 @@ import { http } from "@/lib/http";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -89,11 +89,13 @@ function PrimaryButton({
   onPress,
   disabled,
   loading,
+  iconName = "log-in-outline",
 }: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
+  iconName?: keyof typeof Ionicons.glyphMap;
 }) {
   const isDisabled = !!disabled || !!loading;
 
@@ -108,7 +110,7 @@ function PrimaryButton({
       })}
     >
       <LinearGradient
-        colors={["#111827", "#0B1220"]}
+        colors={["#1340a1", "#1340a1"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
@@ -120,12 +122,12 @@ function PrimaryButton({
         }}
       >
         {loading ? (
-          <ActivityIndicator />
+          <ActivityIndicator color="white" />
         ) : (
-          <Ionicons name="log-in-outline" size={18} color="white" />
+          <Ionicons name={iconName} size={18} color="white" />
         )}
         <Text style={{ color: "white", fontWeight: "900", fontSize: 15 }}>
-          {loading ? "Đang đăng nhập..." : title}
+          {loading ? "Đang xử lý..." : title}
         </Text>
       </LinearGradient>
     </Pressable>
@@ -133,7 +135,7 @@ function PrimaryButton({
 }
 
 export default function LoginScreen() {
-  const { signIn, reset } = useAuth();
+  const { signIn, reset, hasSavedToken, unlockWithBiometric } = useAuth();
   const router = useRouter();
 
   const [phone, setPhone] = useState("");
@@ -142,9 +144,30 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
+  // ✅ Tự động gọi FaceID/Vân tay nếu phát hiện có token cũ còn hạn
+  useEffect(() => {
+    if (hasSavedToken) {
+      handleBiometricLogin();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasSavedToken]);
+
+  const handleBiometricLogin = async () => {
+    setErr("");
+    setBusy(true);
+    const success = await unlockWithBiometric();
+    setBusy(false);
+    
+    if (success) {
+      router.replace("/"); // Mở khóa thành công thì cho vào app
+    } else {
+      setErr("Vui lòng nhập mật khẩu để đăng nhập."); // Hủy quét thì yêu cầu nhập mật khẩu
+    }
+  };
+
   const canSubmit = useMemo(() => {
     const p = normalizePhone(phone);
-    // VN thường 10 số bắt đầu 0 hoặc 9 số (không nhập 0). Bạn có thể nới lỏng nếu muốn.
+    // VN thường 10 số bắt đầu 0 hoặc 9 số (không nhập 0).
     return p.length >= 9 && password.length >= 1 && !busy;
   }, [phone, password, busy]);
 
@@ -216,7 +239,7 @@ export default function LoginScreen() {
               borderColor: "#EEF2F7",
             }}
           >
-            <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
+            <Text style={{ fontSize: 16, fontWeight: "900", color: "#1340a1" }}>
               Đăng nhập
             </Text>
             <Text style={{ marginTop: 6, color: "#6B7280" }}>
@@ -258,13 +281,24 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
-            <View style={{ marginTop: 14 }}>
+            <View style={{ marginTop: 14, gap: 10 }}>
+              {/* Nút đăng nhập truyền thống */}
               <PrimaryButton
                 title="Đăng nhập"
                 onPress={onLogin}
                 disabled={!canSubmit}
-                loading={busy}
+                loading={busy && !hasSavedToken} // Chỉ xoay lúc bấm nút login thường
               />
+
+              {/* ✅ Nút đăng nhập bằng Sinh trắc học (Chỉ hiện khi có token cũ) */}
+              {hasSavedToken && (
+                <PrimaryButton
+                  title="Đăng nhập nhanh bằng Sinh trắc học"
+                  iconName="finger-print-outline"
+                  onPress={handleBiometricLogin}
+                  disabled={busy}
+                />
+              )}
             </View>
 
             <View
@@ -280,7 +314,7 @@ export default function LoginScreen() {
                 onPress={() => router.push("/register")}
                 disabled={busy}
               >
-                <Text style={{ color: "#111827", fontWeight: "900" }}>
+                <Text style={{ color: "#1340a1", fontWeight: "900" }}>
                   Đăng ký
                 </Text>
               </Pressable>
