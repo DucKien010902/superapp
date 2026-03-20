@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    container_name: superapp-backend
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app            # CỰC KỲ QUAN TRỌNG: Giúp sửa code tự nhảy vào Docker
+      - /app/node_modules # Giữ lại node_modules bên trong Docker để không bị lỗi
+    environment:
+      - PORT=5001
+      - MONGO_URI=mongodb://host.docker.internal:27017/superapp # Link tới MongoDB của bạn

@@ -62,11 +62,13 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 4000;
+const HOST = '0.0.0.0'; // QUAN TRỌNG: Lắng nghe trên mọi interface mạng
 
 connectDB(process.env.MONGO_URI)
   .then(() => {
-    app.listen(PORT, () =>
-      console.log(`✅ API listening on http://localhost:${PORT}`)
+    // Thêm tham số HOST vào giữa PORT và callback
+    app.listen(PORT, HOST, () =>
+      console.log(`✅ API listening on http://${HOST}:${PORT}`)
     );
   })
   .catch((e) => {
