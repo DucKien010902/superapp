@@ -14,7 +14,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://apisupperapp.nsland.vn"
+        "EXPO_PUBLIC_API_URL": "https://superapp.gennovax.vn"
       }
     },
     "production": {

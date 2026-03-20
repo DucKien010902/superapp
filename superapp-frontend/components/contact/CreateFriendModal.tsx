@@ -2,15 +2,79 @@ import { adminCreateFriend } from "@/lib/contact/api";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Modal,
-    Platform,
-    Pressable,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Modal,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
+// 1. MANG InputRow RA NGOÀI COMPONENT CHÍNH
+const InputRow = ({
+  label,
+  icon,
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType,
+  autoCapitalize,
+}: {
+  label: string;
+  icon: any;
+  value: string;
+  onChangeText: (t: string) => void;
+  placeholder: string;
+  keyboardType?: any;
+  autoCapitalize?: any;
+}) => {
+  return (
+    <View style={{ marginTop: 12 }}>
+      <Text style={{ fontSize: 12, fontWeight: "800", color: "#374151", marginBottom: 6 }}>
+        {label}
+      </Text>
+
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          borderWidth: 1,
+          borderColor: "#E5E7EB",
+          backgroundColor: "#F9FAFB",
+          borderRadius: 14,
+          paddingHorizontal: 12,
+          paddingVertical: Platform.OS === "ios" ? 12 : 10,
+        }}
+      >
+        <Ionicons name={icon} size={18} color="#6B7280" />
+
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="rgba(17,24,39,0.35)"
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          style={{
+            flex: 1,
+            fontSize: 14,
+            color: "#111827",
+            paddingVertical: 0,
+          }}
+        />
+        {!!value && (
+          <Pressable onPress={() => onChangeText("")} hitSlop={10}>
+            <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+};
+
+// 2. COMPONENT CHÍNH
 export default function CreateFriendModal({
   open,
   onClose,
@@ -59,70 +123,9 @@ export default function CreateFriendModal({
     }
   };
 
-  const InputRow = ({
-    label,
-    icon,
-    value,
-    onChangeText,
-    placeholder,
-    keyboardType,
-    autoCapitalize,
-  }: {
-    label: string;
-    icon: any;
-    value: string;
-    onChangeText: (t: string) => void;
-    placeholder: string;
-    keyboardType?: any;
-    autoCapitalize?: any;
-  }) => {
-    return (
-      <View style={{ marginTop: 12 }}>
-        <Text style={{ fontSize: 12, fontWeight: "800", color: "#374151", marginBottom: 6 }}>
-          {label}
-        </Text>
-
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-            borderWidth: 1,
-            borderColor: "#E5E7EB",
-            backgroundColor: "#F9FAFB",
-            borderRadius: 14,
-            paddingHorizontal: 12,
-            paddingVertical: Platform.OS === "ios" ? 12 : 10,
-          }}
-        >
-          <Ionicons name={icon} size={18} color="#6B7280" />
-
-          <TextInput
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor="rgba(17,24,39,0.35)" // ✅ holder mờ
-            keyboardType={keyboardType}
-            autoCapitalize={autoCapitalize}
-            style={{
-              flex: 1,
-              fontSize: 14,
-              color: "#111827",
-              paddingVertical: 0,
-            }}
-          />
-          {!!value && (
-            <Pressable onPress={() => onChangeText("")} hitSlop={10}>
-              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-            </Pressable>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+        {/* Code View và Layout của bạn giữ nguyên, không thay đổi gì cả */}
       <View
         style={{
           flex: 1,
@@ -132,7 +135,6 @@ export default function CreateFriendModal({
           padding: 16,
         }}
       >
-        {/* tap outside to close */}
         <Pressable
           onPress={onClose}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
@@ -147,7 +149,6 @@ export default function CreateFriendModal({
             padding: 16,
             borderWidth: 1,
             borderColor: "rgba(229,231,235,0.9)",
-            // shadow
             shadowColor: "#000",
             shadowOpacity: 0.18,
             shadowRadius: 18,
@@ -257,6 +258,7 @@ export default function CreateFriendModal({
 
           {/* Footer */}
           <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+             {/* Layout footer của bạn giữ nguyên */}
             <Pressable
               onPress={() => {
                 reset();
@@ -279,7 +281,6 @@ export default function CreateFriendModal({
               <Text style={{ fontWeight: "900", color: "#111827" }}>Huỷ</Text>
             </Pressable>
 
-            {/* Primary button (fake gradient look) */}
             <Pressable
               disabled={!canSubmit}
               onPress={submit}
@@ -315,7 +316,6 @@ export default function CreateFriendModal({
             </Pressable>
           </View>
 
-          {/* Loading overlay nhẹ */}
           {loading && (
             <View
               style={{
