@@ -29,8 +29,9 @@ export default function NoteEditorScreen() {
   // ✅ lưu action back/gesture bị chặn để dispatch lại cho "thoát 1 phát"
   const pendingActionRef = useRef<any>(null);
 
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
   const noteId = String(id);
+  const createFolderId = folderId ? String(folderId) : null;
 
   // ✅ quy ước: màn tạo mới thường có id="create"
   const isCreate = noteId === "create";
@@ -96,20 +97,25 @@ export default function NoteEditorScreen() {
     return init.title !== title || init.content !== content;
   }, [title, content, isDeleted, isCreate, hasAnyText]);
 
-  const save = useCallback(async () => {
-    if (isDeleted) return;
+  const save = useCallback(async (options?: { stayOnEditor?: boolean }) => {
+    if (isDeleted) return null;
 
     // ✅ create mà trống -> không lưu, không tạo
     if (isCreate && !hasAnyText) {
       await Haptics.selectionAsync();
-      return;
+      return null;
     }
 
     await Haptics.selectionAsync();
 
     if (isCreate) {
       // ✅ tạm dùng any nếu repo chưa typed createNote
-      const created = (NoteRepo as any).createNote({ title, content }) as Note;
+      const createdId = NoteRepo.createNote({
+        folderId: createFolderId,
+        title,
+        content,
+      });
+      const created = NoteRepo.getNote(createdId);
 
       // cập nhật snapshot theo note mới
       initialRef.current = {
@@ -117,14 +123,27 @@ export default function NoteEditorScreen() {
         content: created?.content ?? "",
       };
       setNote(created);
-      return;
+      if (options?.stayOnEditor !== false) {
+        router.replace(`/note/note/${createdId}`);
+      }
+      return createdId;
     }
 
     NoteRepo.updateNote(noteId, { title, content });
     const n2 = NoteRepo.getNote(noteId);
     setNote(n2);
     initialRef.current = { title, content };
-  }, [noteId, title, content, isDeleted, isCreate, hasAnyText]);
+    return noteId;
+  }, [
+    createFolderId,
+    hasAnyText,
+    isCreate,
+    isDeleted,
+    noteId,
+    router,
+    title,
+    content,
+  ]);
 
   // ✅ thoát đúng 1 phát: dispatch lại action back/gesture đã bị chặn
   const leaveNow = useCallback(() => {
@@ -182,7 +201,7 @@ export default function NoteEditorScreen() {
         {
           text: "Lưu & thoát",
           onPress: async () => {
-            await save();
+            await save({ stayOnEditor: false });
             leaveNow();
           },
         },
@@ -259,6 +278,12 @@ export default function NoteEditorScreen() {
         </Pressable>
 
         <Text style={styles.hTitle}>{topTitle}</Text>
+
+        {!isDeleted ? (
+          <Pressable onPress={() => void save()} style={styles.saveBtn}>
+            <Text style={styles.saveText}>Lưu</Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           onPress={async () => {
@@ -340,6 +365,16 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.10)",
   },
   icon: { color: "white", fontSize: 16, fontWeight: "900" },
+  saveBtn: {
+    height: 50,
+    minWidth: 64,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2563EB",
+  },
+  saveText: { color: "white", fontSize: 14, fontWeight: "900" },
 
   titleInput: {
     marginHorizontal: 16,
