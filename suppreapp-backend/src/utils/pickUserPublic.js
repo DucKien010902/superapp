@@ -6,6 +6,8 @@ export function pickUserPublic(u) {
     role: u.role,
     isActive: u.isActive,
     profile: u.profile,
+    images: u.images || [],
+    files: u.files || [],
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,
   };

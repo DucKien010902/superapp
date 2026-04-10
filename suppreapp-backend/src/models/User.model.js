@@ -2,24 +2,20 @@ import mongoose from "mongoose";
 
 const ProfileSchema = new mongoose.Schema(
   {
-    username: { type: String, unique: true, sparse: true, index: true },
+    username: { type: String, required: true, sparse: true, index: true },
     displayName: { type: String, required: true },
     avatarUrl: { type: String, default: "" },
     coverUrl: { type: String, default: "" },
-
     bio: { type: String, default: "" },
     gender: { type: String, enum: ["male", "female", "other", ""], default: "" },
     birthday: { type: String, default: "" },
     phone: { type: String, default: "" },
-
     location: {
       city: { type: String, default: "" },
       country: { type: String, default: "" },
     },
-
     work: { type: String, default: "" },
     education: { type: String, default: "" },
-
     links: [{ label: { type: String, default: "" }, url: { type: String, default: "" } }],
   },
   { _id: false }
@@ -33,36 +29,52 @@ const SettingsSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const UserImageSchema = new mongoose.Schema(
+  {
+    url: { type: String, required: true },
+    caption: { type: String, default: "" },
+  },
+  { _id: true, timestamps: { createdAt: true, updatedAt: false } }
+);
+
+const UserFileSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    url: { type: String, required: true },
+    mimeType: { type: String, default: "" },
+    size: { type: Number, default: 0 },
+  },
+  { _id: true, timestamps: { createdAt: true, updatedAt: false } }
+);
+
 const UserSchema = new mongoose.Schema(
   {
-    // ✅ auth: dùng phone
-    email: { type: String, default: "", }, // ✅ bỏ required/unique
+    email: { type: String, default: "" },
     phone: { type: String, default: "", index: true },
     phoneNormalized: { type: String, unique: true, sparse: true, index: true },
-
     passwordHash: { type: String, required: true },
-
     role: { type: String, enum: ["admin", "staff", "user"], default: "user" },
     isActive: { type: Boolean, default: true },
-
-    // ✅ profile vẫn required -> ok, nhưng register phải set displayName
     profile: { type: ProfileSchema, required: true },
-
     settings: { type: SettingsSchema, default: () => ({}) },
     evaluation: {
-    score: { type: String, default: "" },
-    attitude: { type: String, default: "" },
-    skill: { type: String, default: "" },
-    general: { 
-      type: [String], 
-      validate: [val => val.length <= 3, '{PATH} exceeds the limit of 3'] // Khóa cứng max 3 ở CSDL
+      score: { type: String, default: "" },
+      attitude: { type: String, default: "" },
+      skill: { type: String, default: "" },
+      general: {
+        type: [String],
+        validate: [(val) => val.length <= 3, "{PATH} exceeds the limit of 3"],
+      },
+      detailed: [
+        {
+          text: { type: String, default: "" },
+          date: { type: String, default: "" },
+        },
+      ],
     },
-    detailed: [{
-      text: { type: String, default: "" },
-      date: { type: String, default: "" }
-    }]
-  },
-lastViewedVersion: { type: String, default: "" }, // <--- THÊM DÒNG NÀY
+    images: { type: [UserImageSchema], default: [] },
+    files: { type: [UserFileSchema], default: [] },
+    lastViewedVersion: { type: String, default: "" },
   },
   { timestamps: true }
 );

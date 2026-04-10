@@ -1,10 +1,8 @@
-// routes/groups.routes.js
 import { Router } from "express";
 import mongoose from "mongoose";
 import Group from "../models/Group.model.js";
 import GroupMember from "../models/GroupMember.model.js";
 import Friendship from "../models/Friendship.model.js";
-import GroupNotice from "../models/GroupNotice.model.js";
 
 const router = Router();
 
@@ -16,12 +14,60 @@ function oid(id) {
   }
 }
 
-async function getMyMembership(groupId, meId) {
-  return GroupMember.findOne({ groupId, userId: meId }).lean();
-}
-
 function isAdminLike(m) {
   return m && (m.role === "owner" || m.role === "admin");
+}
+
+function mapGroupImage(img) {
+  return {
+    id: String(img?._id),
+    url: img?.url || "",
+    caption: img?.caption || "",
+    createdBy: String(img?.createdBy || ""),
+    createdAt: img?.createdAt || null,
+  };
+}
+
+function mapGroupDocument(doc) {
+  return {
+    id: String(doc?._id),
+    name: doc?.name || "",
+    url: doc?.url || "",
+    mimeType: doc?.mimeType || "",
+    size: Number(doc?.size || 0),
+    createdBy: String(doc?.createdBy || ""),
+    createdAt: doc?.createdAt || null,
+  };
+}
+
+function mapGroupPost(post) {
+  return {
+    id: String(post?._id),
+    content: post?.content || "",
+    createdBy: String(post?.createdBy || ""),
+    createdAt: post?.createdAt || null,
+    updatedAt: post?.updatedAt || null,
+  };
+}
+
+function mapGroupBase(g, memberIds = [], myRole = "member") {
+  return {
+    id: String(g._id),
+    name: g.name,
+    description: g.description || "",
+    visibility: g.visibility,
+    avatarUrl: g.avatarUrl || "",
+    coverUrl: g.coverUrl || "",
+    ownerId: String(g.ownerId),
+    isHidden: !!g.isHidden,
+    createdAt: g.createdAt,
+    updatedAt: g.updatedAt,
+    memberIds,
+    myRole,
+    images: (g.images || []).map(mapGroupImage),
+    documents: (g.documents || []).map(mapGroupDocument),
+    posts: (g.posts || []).map(mapGroupPost),
+  };
 }
 
 async function ensureMember(req, res, next) {
@@ -38,7 +84,7 @@ async function ensureMember(req, res, next) {
   next();
 }
 
-async function ensureAdmin(req, res, next) {
+function ensureAdmin(req, res, next) {
   if (!isAdminLike(req.meMember)) return res.status(403).json({ message: "Forbidden" });
   next();
 }
@@ -53,14 +99,9 @@ async function ensureFriendAccepted(meId, otherId) {
   return !!rel;
 }
 
-// ===============
-// GET /api/groups
-// list nhóm mà user là member
-// ===============
 router.get("/", async (req, res, next) => {
   try {
     const meId = req.user.id;
-
     const memberships = await GroupMember.find({ userId: meId }).lean();
     const groupIds = memberships.map((m) => m.groupId);
 
@@ -71,9 +112,8 @@ router.get("/", async (req, res, next) => {
       .sort({ updatedAt: -1 })
       .lean();
 
-    // build memberIds + myRole cho frontend
     const members = await GroupMember.find({ groupId: { $in: groupIds } }).lean();
-    const map = new Map(); // groupId -> { memberIds: [], myRole }
+    const map = new Map();
     for (const m of members) {
       const k = String(m.groupId);
       if (!map.has(k)) map.set(k, { memberIds: [], myRole: null });
@@ -87,20 +127,7 @@ router.get("/", async (req, res, next) => {
 
     const items = groups.map((g) => {
       const extra = map.get(String(g._id)) || { memberIds: [], myRole: "member" };
-      return {
-        id: String(g._id),
-        name: g.name,
-        description: g.description || "",
-        visibility: g.visibility,
-        avatarUrl: g.avatarUrl || "",
-        coverUrl: g.coverUrl || "",
-        ownerId: String(g.ownerId),
-        isHidden: !!g.isHidden,
-        createdAt: g.createdAt,
-        updatedAt: g.updatedAt,
-        memberIds: extra.memberIds,
-        myRole: extra.myRole || "member",
-      };
+      return mapGroupBase(g, extra.memberIds, extra.myRole || "member");
     });
 
     res.json({ items });
@@ -109,15 +136,20 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-// ===============
-// POST /api/groups
-// tạo nhóm: creator là owner + auto member owner
-// ===============
 router.post("/", async (req, res, next) => {
   try {
     const meId = req.user.id;
-    const { name, description = "", visibility = "private", avatarUrl = "", coverUrl = "" } =
-      req.body || {};
+    const {
+      name,
+      description = "",
+      visibility = "private",
+      avatarUrl = "",
+      coverUrl = "",
+      images = [],
+      documents = [],
+      posts = [],
+    } = req.body || {};
+
     if (!name?.trim()) return res.status(400).json({ message: "Name is required" });
 
     const g = await Group.create({
@@ -128,33 +160,18 @@ router.post("/", async (req, res, next) => {
       coverUrl,
       ownerId: meId,
       isHidden: false,
+      images: Array.isArray(images) ? images : [],
+      documents: Array.isArray(documents) ? documents : [],
+      posts: Array.isArray(posts) ? posts : [],
     });
 
     await GroupMember.create({ groupId: g._id, userId: meId, role: "owner" });
-
-    res.json({
-      id: String(g._id),
-      name: g.name,
-      description: g.description || "",
-      visibility: g.visibility,
-      avatarUrl: g.avatarUrl || "",
-      coverUrl: g.coverUrl || "",
-      ownerId: String(g.ownerId),
-      isHidden: !!g.isHidden,
-      memberIds: [String(meId)],
-      myRole: "owner",
-      createdAt: g.createdAt,
-      updatedAt: g.updatedAt,
-    });
+    res.json(mapGroupBase(g, [String(meId)], "owner"));
   } catch (e) {
     next(e);
   }
 });
 
-// ===============
-// GET /api/groups/:id
-// chỉ member mới xem được group detail
-// ===============
 router.get("/:id", ensureMember, async (req, res, next) => {
   try {
     const g = await Group.findById(req.groupId).lean();
@@ -163,36 +180,18 @@ router.get("/:id", ensureMember, async (req, res, next) => {
     const members = await GroupMember.find({ groupId: req.groupId }).lean();
     const memberIds = members.map((m) => String(m.userId));
 
-    res.json({
-      id: String(g._id),
-      name: g.name,
-      description: g.description || "",
-      visibility: g.visibility,
-      avatarUrl: g.avatarUrl || "",
-      coverUrl: g.coverUrl || "",
-      ownerId: String(g.ownerId),
-      isHidden: !!g.isHidden,
-      createdAt: g.createdAt,
-      updatedAt: g.updatedAt,
-      memberIds,
-      myRole: req.meMember.role,
-    });
+    res.json(mapGroupBase(g, memberIds, req.meMember.role));
   } catch (e) {
     next(e);
   }
 });
 
-// ===============
-// GET /api/groups/:id/members
-// list members (chỉ member mới xem)
-// ===============
 router.get("/:id/members", ensureMember, async (req, res, next) => {
   try {
     const rows = await GroupMember.find({ groupId: req.groupId })
       .sort({ role: 1, createdAt: 1 })
       .lean();
 
-    // trả “raw” userId + role; frontend map với friends (như bạn đang làm)
     const items = rows.map((m) => ({
       userId: String(m.userId),
       role: m.role,
@@ -206,11 +205,6 @@ router.get("/:id/members", ensureMember, async (req, res, next) => {
   }
 });
 
-// ===============
-// POST /api/groups/:id/members
-// add member: chỉ owner/admin + chỉ add bạn bè accepted
-// body: { userId }
-// ===============
 router.post("/:id/members", ensureMember, ensureAdmin, async (req, res, next) => {
   try {
     const meId = req.user.id;
@@ -219,11 +213,8 @@ router.post("/:id/members", ensureMember, ensureAdmin, async (req, res, next) =>
 
     const uOid = oid(userId);
     if (!uOid) return res.status(400).json({ message: "Invalid userId" });
-
-    // không add chính mình
     if (String(uOid) === String(meId)) return res.status(400).json({ message: "Invalid userId" });
 
-    // chỉ add bạn bè accepted
     const okFriend = await ensureFriendAccepted(meId, uOid);
     if (!okFriend) return res.status(403).json({ message: "Only can add accepted friends" });
 
@@ -233,26 +224,38 @@ router.post("/:id/members", ensureMember, ensureAdmin, async (req, res, next) =>
       item: { userId: String(created.userId), role: created.role, createdAt: created.createdAt },
     });
   } catch (e) {
-    if (String(e?.code) === "11000") return res.json({ ok: true }); // đã tồn tại
+    if (String(e?.code) === "11000") return res.json({ ok: true });
     next(e);
   }
 });
 
-// ===============
-// PATCH /api/groups/:id
-// update group info: owner/admin
-// body: { name?, description?, avatarUrl?, coverUrl?, visibility? }
-// ===============
 router.patch("/:id", ensureMember, ensureAdmin, async (req, res, next) => {
   try {
     const patch = {};
-    const { name, description, avatarUrl, coverUrl, visibility } = req.body || {};
+    const { name, description, avatarUrl, coverUrl, visibility, images, documents } = req.body || {};
 
     if (typeof name === "string" && name.trim()) patch.name = name.trim();
     if (typeof description === "string") patch.description = description;
     if (typeof avatarUrl === "string") patch.avatarUrl = avatarUrl;
     if (typeof coverUrl === "string") patch.coverUrl = coverUrl;
     if (visibility === "public" || visibility === "private") patch.visibility = visibility;
+
+    if (Array.isArray(images)) {
+      patch.images = images.map((item) => ({
+        url: String(item?.url || ""),
+        caption: String(item?.caption || ""),
+        createdBy: item?.createdBy || req.user.id,
+      }));
+    }
+    if (Array.isArray(documents)) {
+      patch.documents = documents.map((item) => ({
+        name: String(item?.name || ""),
+        url: String(item?.url || ""),
+        mimeType: String(item?.mimeType || ""),
+        size: Number(item?.size || 0),
+        createdBy: item?.createdBy || req.user.id,
+      }));
+    }
 
     const g = await Group.findByIdAndUpdate(req.groupId, patch, { new: true }).lean();
     if (!g) return res.status(404).json({ message: "Not found" });
@@ -263,14 +266,8 @@ router.patch("/:id", ensureMember, ensureAdmin, async (req, res, next) => {
   }
 });
 
-// ===============
-// PATCH /api/groups/:id/members/:userId/role
-// đổi role: chỉ owner, không cho tự tiện đổi owner
-// body: { role: "admin"|"member" }
-// ===============
 router.patch("/:id/members/:userId/role", ensureMember, async (req, res, next) => {
   try {
-    // ✅ chỉ owner mới được đổi role (kể cả admin cũng không)
     if (req.meMember.role !== "owner") return res.status(403).json({ message: "Only owner" });
 
     const targetId = oid(req.params.userId);
@@ -284,7 +281,6 @@ router.patch("/:id/members/:userId/role", ensureMember, async (req, res, next) =
     const target = await GroupMember.findOne({ groupId: req.groupId, userId: targetId }).lean();
     if (!target) return res.status(404).json({ message: "Member not found" });
 
-    // ✅ nếu muốn set owner: giới hạn tối đa 2 owner
     if (role === "owner") {
       const ownerCount = await GroupMember.countDocuments({ groupId: req.groupId, role: "owner" });
       if (ownerCount >= 2 && target.role !== "owner") {
@@ -298,10 +294,7 @@ router.patch("/:id/members/:userId/role", ensureMember, async (req, res, next) =
     next(e);
   }
 });
-// ===============
-// DELETE /api/groups/:id/members/:userId
-// kick member: owner/admin (admin không kick owner/admin khác)
-// ===============
+
 router.delete("/:id/members/:userId", ensureMember, ensureAdmin, async (req, res, next) => {
   try {
     const meId = req.user.id;
@@ -311,15 +304,10 @@ router.delete("/:id/members/:userId", ensureMember, ensureAdmin, async (req, res
     const target = await GroupMember.findOne({ groupId: req.groupId, userId: targetId }).lean();
     if (!target) return res.status(404).json({ message: "Member not found" });
 
-    // không kick owner
     if (target.role === "owner") return res.status(400).json({ message: "Cannot remove owner" });
-
-    // admin không kick admin khác
-    if (req.meMember.role === "admin" && target.role === "admin")
+    if (req.meMember.role === "admin" && target.role === "admin") {
       return res.status(403).json({ message: "Admin cannot remove other admin" });
-
-    // cho phép tự rời nhóm (member/admin) bằng cách gọi xóa chính mình
-    // nhưng owner không được tự rời
+    }
     if (String(targetId) === String(meId) && req.meMember.role === "owner") {
       return res.status(400).json({ message: "Owner cannot leave. Transfer ownership first." });
     }
@@ -331,10 +319,6 @@ router.delete("/:id/members/:userId", ensureMember, ensureAdmin, async (req, res
   }
 });
 
-// ===============
-// DELETE /api/groups/:id
-// delete group: chỉ owner
-// ===============
 router.delete("/:id", ensureMember, async (req, res, next) => {
   try {
     if (req.meMember.role !== "owner") return res.status(403).json({ message: "Only owner" });
@@ -342,7 +326,6 @@ router.delete("/:id", ensureMember, async (req, res, next) => {
     await Promise.all([
       GroupMember.deleteMany({ groupId: req.groupId }),
       Group.deleteOne({ _id: req.groupId }),
-      // (sau này có media/doc thì xóa kèm ở đây)
     ]);
 
     res.json({ ok: true });
@@ -350,31 +333,16 @@ router.delete("/:id", ensureMember, async (req, res, next) => {
     next(e);
   }
 });
-// ===============
-// GET /api/groups/:id/notices
-// member xem được
-// ===============
-router.get("/:id/notices", ensureMember, async (req, res, next) => {
-  try {
-    const rows = await GroupNotice.find({ groupId: req.groupId })
-      .sort({ isPinned: -1, updatedAt: -1 })
-      .lean();
 
-    const items = rows.map((n) => ({
-      id: String(n._id),
-      groupId: String(n.groupId),
-      title: n.title,
-      isPinned: !!n.isPinned,
-      createdBy: String(n.createdBy),
-      createdAt: n.createdAt,
-      updatedAt: n.updatedAt,
-      items: (n.items || []).map((it) => ({
-        id: String(it._id),
-        text: it.text,
-        createdBy: String(it.createdBy),
-        createdAt: it.createdAt,
-      })),
-    }));
+router.get("/:id/posts", ensureMember, async (req, res, next) => {
+  try {
+    const group = await Group.findById(req.groupId).lean();
+    if (!group) return res.status(404).json({ message: "Not found" });
+
+    const items = (group.posts || [])
+      .slice()
+      .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())
+      .map(mapGroupPost);
 
     res.json({ items });
   } catch (e) {
@@ -382,59 +350,57 @@ router.get("/:id/notices", ensureMember, async (req, res, next) => {
   }
 });
 
-// ===============
-// POST /api/groups/:id/notices
-// owner tạo thông báo chính
-// body: { title, isPinned? }
-// ===============
-router.post("/:id/notices", ensureMember, async (req, res, next) => {
+router.post("/:id/posts", ensureMember, async (req, res, next) => {
   try {
-    const meId = req.user.id;
-    const { title, isPinned = false } = req.body || {};
-    if (!title?.trim()) return res.status(400).json({ message: "Title is required" });
+    if (req.meMember.role !== "owner") return res.status(403).json({ message: "Only owner" });
 
-    const doc = await GroupNotice.create({
-      groupId: req.groupId,
-      title: title.trim(),
-      isPinned: !!isPinned,
-      createdBy: meId,
-      items: [],
-    });
+    const content = String(req.body?.content || "").trim();
+    if (!content) return res.status(400).json({ message: "content is required" });
 
-    res.json({
-      ok: true,
-      item: { id: String(doc._id) },
-    });
+    const updated = await Group.findByIdAndUpdate(
+      req.groupId,
+      {
+        $push: {
+          posts: {
+            content,
+            createdBy: req.user.id,
+          },
+        },
+      },
+      { new: true }
+    ).lean();
+
+    if (!updated) return res.status(404).json({ message: "Not found" });
+    const item = updated.posts?.[updated.posts.length - 1];
+    res.json({ ok: true, item: mapGroupPost(item) });
   } catch (e) {
     next(e);
   }
 });
 
-// ===============
-// POST /api/groups/:id/notices/:noticeId/items
-// owner thêm thông báo phụ
-// body: { text }
-// ===============
-router.post("/:id/notices/:noticeId/items", ensureMember, async (req, res, next) => {
+router.patch("/:id/posts/:postId", ensureMember, async (req, res, next) => {
   try {
-    const meId = req.user.id;
-    const noticeId = oid(req.params.noticeId);
-    if (!noticeId) return res.status(400).json({ message: "Invalid noticeId" });
+    if (req.meMember.role !== "owner") return res.status(403).json({ message: "Only owner" });
 
-    const { text } = req.body || {};
-    if (!text?.trim()) return res.status(400).json({ message: "Text is required" });
+    const postId = oid(req.params.postId);
+    if (!postId) return res.status(400).json({ message: "Invalid postId" });
 
-    const n = await GroupNotice.findOne({ _id: noticeId, groupId: req.groupId }).lean();
-    if (!n) return res.status(404).json({ message: "Notice not found" });
+    const content = String(req.body?.content || "").trim();
+    if (!content) return res.status(400).json({ message: "content is required" });
 
-    await GroupNotice.updateOne(
-      { _id: noticeId },
-      { $push: { items: { text: text.trim(), createdBy: meId } } }
-    );
+    const group = await Group.findById(req.groupId);
+    if (!group) return res.status(404).json({ message: "Not found" });
 
-    res.json({ ok: true });
+    const post = group.posts.id(postId);
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    post.content = content;
+    await group.save();
+
+    res.json({ ok: true, item: mapGroupPost(post) });
   } catch (e) {
     next(e);
   }
 });
+
 export default router;

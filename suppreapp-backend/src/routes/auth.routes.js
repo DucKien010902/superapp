@@ -9,7 +9,7 @@ function signToken(user) {
   return jwt.sign(
     { sub: user._id.toString(), role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "30d" }
   );
 }
 
@@ -55,6 +55,7 @@ router.post("/register", async (req, res, next) => {
   isActive: true,
   profile: {
     displayName: name.trim(),
+    username: name.trim(),
     phone: String(phone).trim(),
   },
 });

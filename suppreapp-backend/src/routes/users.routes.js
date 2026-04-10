@@ -219,6 +219,22 @@ router.patch("/me", async (req, res, next) => {
       }));
     }
 
+    if (Array.isArray(payload.images)) {
+      set.images = payload.images.map((item) => ({
+        url: typeof item?.url === "string" ? item.url : "",
+        caption: typeof item?.caption === "string" ? item.caption : "",
+      }));
+    }
+
+    if (Array.isArray(payload.files)) {
+      set.files = payload.files.map((item) => ({
+        name: typeof item?.name === "string" ? item.name : "",
+        url: typeof item?.url === "string" ? item.url : "",
+        mimeType: typeof item?.mimeType === "string" ? item.mimeType : "",
+        size: Number(item?.size || 0),
+      }));
+    }
+
     // validate tối thiểu
     if ("profile.displayName" in set && !set["profile.displayName"]) {
       return res.status(400).json({ message: "displayName is required" });
