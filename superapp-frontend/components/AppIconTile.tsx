@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
-  tone?: "violet" | "blue" | "green" | "orange";
+  tone?: "violet" | "blue" | "green" | "orange"| "sky";
+  logoUri?: string;
 };
 
 export default function AppIconTile({
@@ -14,6 +15,7 @@ export default function AppIconTile({
   icon,
   onPress,
   tone = "blue",
+  logoUri,
 }: Props) {
   const toneStyle = TONE[tone];
 
@@ -23,7 +25,11 @@ export default function AppIconTile({
       style={({ pressed }) => [styles.wrap, pressed && styles.pressed]}
     >
       <View style={[styles.icon, toneStyle]}>
-        <Ionicons name={icon} size={28} color="white" />
+        {logoUri ? (
+          <Image source={{ uri: logoUri }} style={styles.logo} resizeMode="contain" />
+        ) : (
+          <Ionicons name={icon} size={28} color="white" />
+        )}
       </View>
       <Text style={styles.label} numberOfLines={1}>
         {label}
@@ -35,6 +41,10 @@ export default function AppIconTile({
 const TONE = StyleSheet.create({
   violet: {
     backgroundColor: "rgba(124, 92, 255, 1)",
+    borderColor: "rgba(124, 92, 255, 0.35)",
+  },
+  sky: {
+    backgroundColor: "rgb(22, 167, 203)",
     borderColor: "rgba(124, 92, 255, 0.35)",
   },
   blue: {
@@ -61,6 +71,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
+  },
+  logo: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.96)",
   },
   label: { color: "rgba(255,255,255,0.9)", fontSize: 12, fontWeight: "700" },
 });

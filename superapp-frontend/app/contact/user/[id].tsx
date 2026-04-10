@@ -1,4 +1,4 @@
-import Screen from "@/components/Screen";
+﻿import Screen from "@/components/Screen";
 import { useAuth } from "@/lib/auth";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import {
@@ -31,6 +31,8 @@ import {
 } from "react-native";
 
 type ProfileDraft = UserPublic["profile"];
+const DEFAULT_COVER_URL =
+  "https://d28jzcg6y4v9j1.cloudfront.net/2025/05/04/hinh_nen_may_tinh_4k_bien_13_1746343476852.jpg";
 
 function vOrDash(v?: string) {
   const s = (v ?? "").trim();
@@ -39,7 +41,7 @@ function vOrDash(v?: string) {
 
 function formatLocation(loc?: { city?: string; country?: string }) {
   const s = `${loc?.city || ""} ${loc?.country || ""}`.trim();
-  return s ? s : "—";
+  return s ? s : "Chưa thêm địa điểm";
 }
 
 function normalizeProfile(p?: ProfileDraft): ProfileDraft {
@@ -47,7 +49,7 @@ function normalizeProfile(p?: ProfileDraft): ProfileDraft {
     username: p?.username || "",
     displayName: p?.displayName || "",
     avatarUrl: p?.avatarUrl || "",
-    coverUrl: p?.coverUrl || "",
+    coverUrl: p?.coverUrl || DEFAULT_COVER_URL,
     bio: p?.bio || "",
     gender: p?.gender || "",
     birthday: p?.birthday || "",
@@ -90,7 +92,52 @@ async function callPhone(phone?: string) {
   Linking.openURL(url);
 }
 
+function normalizeUrl(url?: string) {
+  const raw = (url || "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
+}
+
+async function openExternalLink(url?: string) {
+  const finalUrl = normalizeUrl(url);
+  if (!finalUrl) return;
+  const ok = await Linking.canOpenURL(finalUrl);
+  if (!ok) {
+    Alert.alert("Liên kết không hợp lệ", "Không thể mở liên kết này.");
+    return;
+  }
+  Linking.openURL(finalUrl);
+}
+
 type PreviewKind = "avatar" | "cover";
+type ContentTab = "all" | "images" | "files";
+
+function formatBytes(size?: number) {
+  const n = Number(size || 0);
+  if (!Number.isFinite(n) || n <= 0) return "-";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDate(v?: string) {
+  if (!v) return "-";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleDateString("vi-VN");
+}
+
+function fileIcon(name?: string, mime?: string) {
+  const n = String(name || "").toLowerCase();
+  const m = String(mime || "").toLowerCase();
+  if (m.startsWith("image/") || /\.(png|jpg|jpeg|webp|gif|heic)$/.test(n)) return "image-outline";
+  if (m.includes("pdf") || n.endsWith(".pdf")) return "document-text-outline";
+  if (/\.(doc|docx)$/.test(n)) return "document-outline";
+  if (/\.(xls|xlsx|csv)$/.test(n)) return "grid-outline";
+  if (/\.(zip|rar|7z)$/.test(n)) return "folder-open-outline";
+  return "document-text-outline";
+}
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -109,6 +156,8 @@ export default function UserProfileScreen() {
   const isAdmin = String(me?.role || "") === "admin";
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [saveNoticeProgress, setSaveNoticeProgress] = useState(1);
 
   // Profile Edit Modal
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -117,6 +166,7 @@ export default function UserProfileScreen() {
   // Evaluation Edit Modal
   const [evalOpen, setEvalOpen] = useState(false);
   const [evalDraft, setEvalDraft] = useState<UserEvaluation>(normalizeEvaluation(undefined));
+  const [contentTab, setContentTab] = useState<ContentTab>("all");
 
   // preview
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -140,6 +190,29 @@ export default function UserProfileScreen() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, id]);
+
+  useEffect(() => {
+    if (!saveNotice) return;
+    const duration = 1000;
+    const startedAt = Date.now();
+    setSaveNoticeProgress(1);
+
+    const timer = setTimeout(() => {
+      setSaveNotice(null);
+      setSaveNoticeProgress(1);
+    }, duration);
+
+    const progressTimer = setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const next = Math.max(0, 1 - elapsed / duration);
+      setSaveNoticeProgress(next);
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(progressTimer);
+    };
+  }, [saveNotice]);
 
   const cta = useMemo(() => {
     if (rel.status === "accepted") return { text: "Hủy bạn", kind: "unfriend" as const, icon: "person-remove-outline" as const };
@@ -183,6 +256,7 @@ export default function UserProfileScreen() {
   // --- ACTIONS PROFILE ---
   const onStartEditProfile = () => {
     if (!isAdmin) return;
+    setSaveNotice(null);
     setProfileDraft(normalizeProfile(user?.profile));
     setEditProfileOpen(true);
   };
@@ -199,7 +273,7 @@ export default function UserProfileScreen() {
       setUser(updated);
       setProfileDraft(normalizeProfile(updated.profile));
       setEditProfileOpen(false);
-      Alert.alert("Thành công", "Đã lưu hồ sơ.");
+      setSaveNotice("Đã lưu hồ sơ thành công.");
     } catch (e: any) {
       Alert.alert("Lỗi", e?.message || "Lưu thất bại");
     } finally {
@@ -209,7 +283,7 @@ export default function UserProfileScreen() {
 
   // --- ACTIONS EVALUATION ---
   const onStartEval = () => {
-    if (!isAdmin) return;
+    setSaveNotice(null);
     setEvalDraft(normalizeEvaluation(user?.evaluation));
     setEvalOpen(true);
   };
@@ -222,7 +296,7 @@ export default function UserProfileScreen() {
       setUser(updated);
       setEvalDraft(normalizeEvaluation(updated.evaluation));
       setEvalOpen(false);
-      Alert.alert("Thành công", "Đã lưu đánh giá.");
+      setSaveNotice("Đã lưu đánh giá thành công.");
     } catch (e: any) {
       Alert.alert("Lỗi", e?.message || "Lưu đánh giá thất bại");
     } finally {
@@ -299,7 +373,10 @@ export default function UserProfileScreen() {
   };
 
   const openPreview = (kind: PreviewKind) => {
-    const has = kind === "cover" ? user?.profile?.coverUrl : user?.profile?.avatarUrl;
+    const has =
+      kind === "cover"
+        ? user?.profile?.coverUrl || profileDraft?.coverUrl || DEFAULT_COVER_URL
+        : user?.profile?.avatarUrl || profileDraft?.avatarUrl;
     if (!has) return;
     setPreviewKind(kind);
     setPreviewOpen(true);
@@ -310,7 +387,7 @@ export default function UserProfileScreen() {
       <Screen top={0} bottom={0}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator />
-          <Text style={{ marginTop: 8, color: "#6B7280" }}>Đang tải…</Text>
+          <Text style={{ marginTop: 8, color: "#6B7280" }}>Đang tải hồ sơ...</Text>
         </View>
       </Screen>
     );
@@ -318,19 +395,27 @@ export default function UserProfileScreen() {
 
   const phoneRaw = (user?.profile?.phone ?? "").trim();
   const hasPhone = !!toTel(phoneRaw);
-  const cover = user?.profile?.coverUrl || "";
+  const cover = user?.profile?.coverUrl || DEFAULT_COVER_URL;
   const avatar = user?.profile?.avatarUrl || "";
+  const galleryImages = [
+    avatar,
+    cover,
+    ...((user?.images || []).map((x) => x.url).filter(Boolean) as string[]),
+  ]
+    .filter(Boolean)
+    .slice(0, 30);
+  const profileFiles = user?.files || [];
 
   return (
     <Screen top={0} bottom={0}>
-      <View style={{ flex: 1, backgroundColor: "#F3F4F6" }}>
+      <View style={{ flex: 1, backgroundColor: "#ECF1F7" }}>
         
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
           {/* ======================================================= */}
           {/* MÀN HÌNH CHÍNH */}
           {/* ======================================================= */}
           <View style={{ backgroundColor: "white" }}>
-            <View style={{ height: 160, backgroundColor: "#111827", position: "relative" }}>
+            <View style={{ height: 232, backgroundColor: "#1F2937", position: "relative" }}>
               <Pressable onPress={() => openPreview("cover")} style={{ flex: 1 }}>
                 {cover ? (
                   <Image source={{ uri: cover }} style={{ width: "100%", height: "100%" }} />
@@ -349,9 +434,9 @@ export default function UserProfileScreen() {
                 </View>
               )}
 
-              <View style={{ position: "absolute", left: 16, bottom: -44, zIndex: 50, elevation: 50 }}>
+              <View style={{ position: "absolute", left: 16, bottom: -56, zIndex: 50, elevation: 50 }}>
                 <Pressable onPress={() => openPreview("avatar")}>
-                  <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: "#E5E7EB", borderWidth: 5, borderColor: "white", overflow: "hidden" }}>
+                  <View style={{ width: 112, height: 112, borderRadius: 56, backgroundColor: "#E5E7EB", borderWidth: 5, borderColor: "white", overflow: "hidden" }}>
                     {avatar ? (
                       <Image source={{ uri: avatar }} style={{ width: "100%", height: "100%" }} />
                     ) : (
@@ -364,7 +449,7 @@ export default function UserProfileScreen() {
               </View>
             </View>
 
-            <View style={{ paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14 }}>
+            <View style={{ paddingHorizontal: 16, paddingTop: 66, paddingBottom: 14 }}>
               <Text style={{ fontSize: 22, fontWeight: "900", color: "#111827" }}>
                 {vOrDash(user?.profile?.displayName)}
               </Text>
@@ -392,110 +477,315 @@ export default function UserProfileScreen() {
                 <Chip icon="briefcase-outline" text={user?.profile?.work?.trim() ? user!.profile!.work! : "Chưa thêm công việc"} />
               </View>
 
-              {/* NÚT XEM ĐÁNH GIÁ (Chỉ Admin) */}
-              {isAdmin && (
-                <Pressable onPress={onStartEval} style={{ marginTop: 14, backgroundColor: '#FEF3C7', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#FDE68A' }}>
-                   <Ionicons name="star-outline" size={18} color="#D97706" />
-                   <Text style={{ marginLeft: 8, color: '#D97706', fontWeight: 'bold', fontSize: 14 }}>Xem đánh giá chi tiết (Admin)</Text>
-                </Pressable>
-              )}
+              <View style={{ marginTop: 16, flexDirection: "row", gap: 6 }}>
+                <ProfileTabPill
+                  label="Tất cả"
+                  icon="apps-outline"
+                  active={contentTab === "all"}
+                  onPress={() => setContentTab("all")}
+                />
+                <ProfileTabPill
+                  label="Đánh giá"
+                  icon="star-outline"
+                  active={evalOpen}
+                  onPress={onStartEval}
+                />
+                <ProfileTabPill
+                  label="Ảnh"
+                  icon="images-outline"
+                  active={contentTab === "images"}
+                  onPress={() => setContentTab("images")}
+                />
+                <ProfileTabPill
+                  label="File"
+                  icon="document-text-outline"
+                  active={contentTab === "files"}
+                  onPress={() => setContentTab("files")}
+                />
+              </View>
             </View>
           </View>
 
-          {/* ======================================================= */}
-          {/* THÔNG TIN CÔNG KHAI (Đã khôi phục đủ các trường) */}
-          {/* ======================================================= */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
-            <SectionTitle icon="information-circle-outline" title="Thông tin công khai" />
-            <Card>
-              <InfoRow icon="at-outline" label="Username" value={vOrDash(user?.profile?.username)} />
-              <Divider />
-              <InfoRow icon="mail-outline" label="Email" value={vOrDash(user?.email)} />
-              <Divider />
-              <InfoRow icon="call-outline" label="SĐT" value={vOrDash(user?.profile?.phone)} valueColor={hasPhone ? "#2563EB" : "#111827"} valueUnderline={hasPhone} onPressValue={hasPhone ? () => callPhone(user?.profile?.phone) : undefined} />
-              <Divider />
-              <InfoRow icon="man-outline" label="Giới tính" value={vOrDash(user?.profile?.gender)} />
-              <Divider />
-              <InfoRow icon="calendar-outline" label="Ngày sinh" value={vOrDash(user?.profile?.birthday)} />
-              <Divider />
-              <InfoRow icon="briefcase-outline" label="Công việc" value={vOrDash(user?.profile?.work)} />
-              <Divider />
-              <InfoRow icon="school-outline" label="Học vấn" value={vOrDash(user?.profile?.education)} />
-              <Divider />
-              <InfoRow icon="navigate-outline" label="Địa điểm" value={formatLocation(user?.profile?.location)} />
-            </Card>
+          {contentTab === "all" ? (
+            <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
+              <SectionTitle icon="information-circle-outline" title="Thông tin công khai" />
+              <Card>
+                <InfoRow icon="at-outline" label="Username" value={vOrDash(user?.profile?.username)} />
+                <Divider />
+                <InfoRow icon="mail-outline" label="Email" value={vOrDash(user?.email)} />
+                <Divider />
+                <InfoRow icon="call-outline" label="SĐT" value={vOrDash(user?.profile?.phone)} valueColor={hasPhone ? "#2563EB" : "#111827"} valueUnderline={hasPhone} onPressValue={hasPhone ? () => callPhone(user?.profile?.phone) : undefined} />
+                <Divider />
+                <InfoRow icon="man-outline" label="Giới tính" value={vOrDash(user?.profile?.gender)} />
+                <Divider />
+                <InfoRow icon="calendar-outline" label="Ngày sinh" value={vOrDash(user?.profile?.birthday)} />
+                <Divider />
+                <InfoRow icon="briefcase-outline" label="Công việc" value={vOrDash(user?.profile?.work)} />
+                <Divider />
+                <InfoRow icon="school-outline" label="Học vấn" value={vOrDash(user?.profile?.education)} />
+                <Divider />
+                <InfoRow icon="navigate-outline" label="Địa điểm" value={formatLocation(user?.profile?.location)} />
+              </Card>
 
-            <View style={{ height: 12 }} />
+              <View style={{ height: 12 }} />
 
-            <SectionTitle icon="link-outline" title="Liên kết" />
-            <Card>
-              {user?.profile?.links && user.profile.links.length > 0 ? (
-                user.profile.links.map((l, idx) => (
-                  <View key={`${idx}-${l.label}-${l.url}`}>
-                    <InfoRow icon="globe-outline" label={vOrDash(l.label)} value={vOrDash(l.url)} />
-                    {idx !== (user?.profile?.links?.length ?? 0) - 1 ? <Divider /> : null}
-                  </View>
-                ))
-              ) : (
-                <View style={{ padding: 12 }}><Text style={{ fontSize: 13, color: "#6B7280" }}>—</Text></View>
-              )}
-            </Card>
+              <SectionTitle icon="link-outline" title="Liên kết" />
+              <Card>
+                {user?.profile?.links && user.profile.links.length > 0 ? (
+                  user.profile.links.map((l, idx) => (
+                    <View key={`${idx}-${l.label}-${l.url}`}>
+                      <InfoRow icon="globe-outline" label={vOrDash(l.label)} value={vOrDash(l.url)} valueColor="#0C4A6E" valueUnderline onPressValue={() => openExternalLink(l.url)} />
+                      {idx !== (user?.profile?.links?.length ?? 0) - 1 ? <Divider /> : null}
+                    </View>
+                  ))
+                ) : (
+                  <View style={{ padding: 12 }}><Text style={{ fontSize: 13, color: "#6B7280" }}>—</Text></View>
+                )}
+              </Card>
 
-            {/* NÚT XÓA NGƯỜI DÙNG Ở CUỐI CÙNG */}
-            {isAdmin && (
-               <View style={{ marginTop: 40, alignItems: 'center' }}>
-                 <Pressable onPress={onDeleteUser} disabled={busy} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FEE2E2', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12 }}>
+              {isAdmin && (
+                <View style={{ marginTop: 40, alignItems: 'center' }}>
+                  <Pressable onPress={onDeleteUser} disabled={busy} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FEE2E2', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12 }}>
                     <Ionicons name="trash-outline" size={18} color="#DC2626" />
                     <Text style={{ color: '#DC2626', fontWeight: 'bold' }}>Xóa người dùng này</Text>
-                 </Pressable>
-                 {/* <Text style={{ color: '#9CA3AF', fontSize: 11, marginTop: 6 }}>Hành động này không thể hoàn tác</Text> */}
-               </View>
-            )}
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          ) : null}
 
-          </View>
+          {contentTab === "images" ? (
+            <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
+              <SectionTitle icon="images-outline" title="Ảnh" />
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                <Pressable
+                  onPress={() => Alert.alert("Thêm ảnh", "Chức năng thêm ảnh sẽ nối logic sau.")}
+                  style={{
+                    width: "31%",
+                    aspectRatio: 1,
+                    borderRadius: 18,
+                    borderWidth: 1.5,
+                    borderStyle: "dashed",
+                    borderColor: "#93C5FD",
+                    backgroundColor: "#EFF6FF",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons name="add" size={28} color="#2563EB" />
+                  <Text style={{ marginTop: 6, fontSize: 12, fontWeight: "800", color: "#1D4ED8" }}>
+                    Thêm
+                  </Text>
+                </Pressable>
+
+                {galleryImages.map((uri, idx) => (
+                  <View
+                    key={`${uri}-${idx}`}
+                    style={{
+                      width: "31%",
+                      aspectRatio: 1,
+                      borderRadius: 18,
+                      overflow: "hidden",
+                      backgroundColor: "#E5E7EB",
+                    }}
+                  >
+                    <Image source={{ uri }} style={{ width: "100%", height: "100%" }} />
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {contentTab === "files" ? (
+            <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
+              <SectionTitle icon="document-text-outline" title="File" />
+              <Card>
+                <Pressable
+                  onPress={() => Alert.alert("Thêm file", "Chức năng thêm file sẽ nối logic sau.")}
+                  style={{
+                    padding: 14,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                    backgroundColor: "#F8FBFF",
+                  }}
+                >
+                  <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="add" size={22} color="#1D4ED8" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "900", color: "#111827" }}>Thêm file</Text>
+                    <Text style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>Tạo một file demo mới hoặc nối upload sau</Text>
+                  </View>
+                </Pressable>
+                <Divider />
+                {profileFiles.length === 0 ? (
+                  <View style={{ padding: 12 }}>
+                    <Text style={{ fontSize: 12, color: "#6B7280" }}>Chưa có file nào.</Text>
+                  </View>
+                ) : (
+                  profileFiles.map((file, idx) => (
+                    <View key={file.id || `${file.url}-${idx}`}>
+                      <FileRow
+                        icon={fileIcon(file.name, file.mimeType)}
+                        name={file.name || "Untitled"}
+                        meta={`${formatBytes(file.size)} • ${formatDate(file.createdAt)}`}
+                      />
+                      {idx !== profileFiles.length - 1 ? <Divider /> : null}
+                    </View>
+                  ))
+                )}
+              </Card>
+            </View>
+          ) : null}
         </ScrollView>
+
+        {saveNotice ? (
+          <View
+            pointerEvents="box-none"
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              paddingHorizontal: 24,
+            }}
+          >
+            <View
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                minHeight:100,
+                backgroundColor: "#F0FDF4",
+                borderRadius: 22,
+                borderWidth: 1,
+                borderColor: "#86EFAC",
+                overflow: "hidden",
+                shadowColor: "#14532D",
+                shadowOpacity: 0.14,
+                shadowRadius: 18,
+                elevation: 8,
+              }}
+            >
+              <View style={{ height: 5, backgroundColor: "#DCFCE7" }}>
+                <View
+                  style={{
+                    width: `${saveNoticeProgress * 100}%`,
+                    height: "100%",
+                    backgroundColor: "#22C55E",
+                  }}
+                />
+              </View>
+
+              <View
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: "#DCFCE7",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons name="checkmark-done-outline" size={24} color="#15803D" />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: "900", color: "#14532D" }}>
+                    Lưu thành công
+                  </Text>
+                  <Text style={{ marginTop: 4, fontSize: 13, color: "#166534", lineHeight: 19 }}>
+                    {saveNotice}
+                  </Text>
+                </View>
+
+                <Pressable
+                  onPress={() => {
+                    setSaveNotice(null);
+                    setSaveNoticeProgress(1);
+                  }}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "#DCFCE7",
+                  }}
+                >
+                  <Ionicons name="close" size={16} color="#166534" />
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        ) : null}
 
         {/* ======================================================= */}
         {/* MODAL SỬA PROFILE (Đã khôi phục đủ trường) */}
         {/* ======================================================= */}
-        <Modal visible={editProfileOpen} transparent animationType="fade" onRequestClose={() => setEditProfileOpen(false)}>
-          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
+        <Modal visible={editProfileOpen} transparent animationType="slide" onRequestClose={() => setEditProfileOpen(false)}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)" }}>
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-              <View style={{ width: "90%", maxHeight: "75%", backgroundColor: "#F3F4F6", borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 8 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "white", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderColor: "#E5E7EB" }}>
-                  <Pressable onPress={() => setEditProfileOpen(false)} disabled={saving || !!uploading}><Text style={{ color: "#EF4444", fontSize: 15, fontWeight: "600" }}>Hủy</Text></Pressable>
-                  <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>Chỉnh sửa hồ sơ</Text>
-                  <Pressable onPress={onSaveProfile} disabled={saving || !!uploading}><Text style={{ color: saving || !!uploading ? "#9CA3AF" : "#1877F2", fontSize: 15, fontWeight: "bold" }}>{saving ? "Lưu..." : "Lưu"}</Text></Pressable>
+              <View style={{ width: "95%", height: "85%", backgroundColor: "#F8FAFC", borderRadius: 28, overflow: "hidden" }}>
+                <View style={{ alignItems: "center", paddingTop: 10 }}>
+                  <View style={{ width: 44, height: 5, borderRadius: 999, backgroundColor: "#CBD5E1" }} />
                 </View>
 
-                <ScrollView contentContainerStyle={{ padding: 16 }}>
-                  <SectionTitle icon="camera-outline" title="Hình ảnh" />
-                  <ActionRow icon="person-circle-outline" title="Đổi ảnh đại diện" subtitle={uploading === "avatar" ? "Đang upload…" : "Chọn ảnh từ máy"} onPress={() => Alert.alert("Ảnh đại diện", "Chọn nguồn ảnh", [{ text: "Hủy", style: "cancel" }, { text: "Thư viện", onPress: () => doUpload("avatar", "library") }])} />
-                  <ActionRow icon="image-outline" title="Đổi ảnh bìa" subtitle={uploading === "cover" ? "Đang upload…" : "Chọn ảnh từ máy"} onPress={() => Alert.alert("Ảnh bìa", "Chọn nguồn ảnh", [{ text: "Hủy", style: "cancel" }, { text: "Thư viện", onPress: () => doUpload("cover", "library") }])} />
-                  
-                  <View style={{ height: 16 }} />
-                  
-                  <SectionTitle icon="document-text-outline" title="Thông tin cá nhân" />
+                <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: "#E5E7EB", backgroundColor: "#FFF" }}>
+                  <Text style={{ fontSize: 18, fontWeight: "900", color: "#111827" }}>Chỉnh sửa hồ sơ</Text>
+                  <Text style={{ marginTop: 4, fontSize: 12, color: "#6B7280" }}>Cập nhật thông tin và bấm Lưu để áp dụng thay đổi.</Text>
+
+                  <View style={{ marginTop: 12, flexDirection: "row", gap: 8 }}>
+                    <OutlineButton icon="close-outline" label="Đóng" onPress={() => setEditProfileOpen(false)} disabled={saving || !!uploading} style={{ flex: 1 }} />
+                    <OutlineButton
+                      icon="cloud-upload-outline"
+                      label={uploading ? "Đang tải" : "Tải ảnh"}
+                      onPress={() =>
+                        Alert.alert("Ảnh hồ sơ", "Chọn loại ảnh muốn đổi", [
+                          { text: "Hủy", style: "cancel" },
+                          { text: "Đổi ảnh đại diện", onPress: () => doUpload("avatar", "library") },
+                          { text: "Đổi ảnh bìa", onPress: () => doUpload("cover", "library") },
+                        ])
+                      }
+                      disabled={saving || !!uploading}
+                      style={{ flex: 1 }}
+                    />
+                    <SolidButton icon="checkmark-outline" label={saving ? "Đang lưu" : "Lưu"} onPress={onSaveProfile} disabled={saving || !!uploading} style={{ flex: 1 }} />
+                  </View>
+                </View>
+
+                <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+                  <SectionTitle icon="document-text-outline" title="Thông tin cơ bản" />
                   <Card>
-                    <Field label="Display name *" value={profileDraft.displayName} onChange={(t:any) => setProfileDraft((p) => ({ ...p, displayName: t }))} />
+                    <Field label="Tên hiển thị *" value={profileDraft.displayName} onChange={(t:any) => setProfileDraft((p) => ({ ...p, displayName: t }))} />
                     <Divider />
                     <Field label="Username" value={profileDraft.username || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, username: t }))} />
                     <Divider />
-                    <Field label="Bio" value={profileDraft.bio || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, bio: t }))} multiline />
+                    <Field label="Tiểu sử" value={profileDraft.bio || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, bio: t }))} multiline />
                   </Card>
 
                   <View style={{ height: 12 }} />
-
                   <Card>
                     <Field label="SĐT" value={profileDraft.phone || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, phone: t }))} keyboardType="phone-pad" />
                     <Divider />
-                    <Field label="Giới tính (male/female/other)" value={profileDraft.gender || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, gender: t }))} />
+                    <Field label="Giới tính" value={profileDraft.gender || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, gender: t }))} />
                     <Divider />
                     <Field label="Ngày sinh (yyyy-mm-dd)" value={profileDraft.birthday || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, birthday: t }))} />
                   </Card>
 
                   <View style={{ height: 12 }} />
-
                   <Card>
                     <Field label="Công việc" value={profileDraft.work || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, work: t }))} />
                     <Divider />
@@ -504,6 +794,24 @@ export default function UserProfileScreen() {
                     <Field label="Thành phố" value={profileDraft.location?.city || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, location: { ...(p.location || {}), city: t } }))} />
                     <Divider />
                     <Field label="Quốc gia" value={profileDraft.location?.country || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, location: { ...(p.location || {}), country: t } }))} />
+                  </Card>
+
+                  <View style={{ height: 12 }} />
+                  <SectionTitle icon="link-outline" title="Liên kết" />
+                  <Card>
+                    <Field
+                      label="Liên kết 1 (URL)"
+                      value={profileDraft.links?.[0]?.url || ""}
+                      onChange={(t:any) => setProfileDraft((p:any) => ({ ...p, links: [{ label: p?.links?.[0]?.label || "Liên kết 1", url: t }, ...(p?.links?.slice(1) || [])] }))}
+                      keyboardType="url"
+                    />
+                    <Divider />
+                    <Field
+                      label="Liên kết 2 (URL)"
+                      value={profileDraft.links?.[1]?.url || ""}
+                      onChange={(t:any) => setProfileDraft((p:any) => ({ ...p, links: [p?.links?.[0] || { label: "Liên kết 1", url: "" }, { label: p?.links?.[1]?.label || "Liên kết 2", url: t }, ...(p?.links?.slice(2) || [])] }))}
+                      keyboardType="url"
+                    />
                   </Card>
                 </ScrollView>
               </View>
@@ -523,7 +831,11 @@ export default function UserProfileScreen() {
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "white", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderColor: "#E5E7EB" }}>
                   <Pressable onPress={() => setEvalOpen(false)} disabled={saving}><Text style={{ color: "#EF4444", fontSize: 15, fontWeight: "600" }}>Đóng</Text></Pressable>
                   <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>Đánh giá User</Text>
-                  <Pressable onPress={onSaveEval} disabled={saving}><Text style={{ color: saving ? "#9CA3AF" : "#1877F2", fontSize: 15, fontWeight: "bold" }}>{saving ? "Lưu..." : "Lưu"}</Text></Pressable>
+                  {isAdmin ? (
+                    <Pressable onPress={onSaveEval} disabled={saving}><Text style={{ color: saving ? "#9CA3AF" : "#1877F2", fontSize: 15, fontWeight: "bold" }}>{saving ? "Lưu..." : "Lưu"}</Text></Pressable>
+                  ) : (
+                    <Text style={{ color: "#9CA3AF", fontSize: 13, fontWeight: "700" }}>Xem</Text>
+                  )}
                 </View>
 
                 <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -550,7 +862,7 @@ export default function UserProfileScreen() {
                     icon="reader-outline" 
                     title="Tổng quan (Tối đa 3)" 
                     rightAction={
-                      (!evalDraft.general || evalDraft.general.length < 3) && (
+                      isAdmin && (!evalDraft.general || evalDraft.general.length < 3) && (
                         <Pressable onPress={() => setEvalDraft(p => ({...p, general: [...(p.general || []), ""]}))}>
                           <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 14 }}>+ Thêm</Text>
                         </Pressable>
@@ -573,12 +885,14 @@ export default function UserProfileScreen() {
                                   }} 
                                />
                              </View>
-                             <Pressable style={{ padding: 8 }} onPress={() => {
-                                const newGen = (evalDraft.general || []).filter((_, i) => i !== index);
-                                setEvalDraft(p => ({...p, general: newGen}));
-                             }}>
-                               <Ionicons name="trash" size={20} color="#EF4444"/>
-                             </Pressable>
+                             {isAdmin ? (
+                               <Pressable style={{ padding: 8 }} onPress={() => {
+                                  const newGen = (evalDraft.general || []).filter((_, i) => i !== index);
+                                  setEvalDraft(p => ({...p, general: newGen}));
+                               }}>
+                                 <Ionicons name="trash" size={20} color="#EF4444"/>
+                               </Pressable>
+                             ) : null}
                           </View>
                           {index !== (evalDraft.general?.length || 0) - 1 && <Divider />}
                         </View>
@@ -595,9 +909,11 @@ export default function UserProfileScreen() {
                     icon="list-outline" 
                     title="Chi tiết" 
                     rightAction={
-                      <Pressable onPress={() => setEvalDraft(p => ({...p, detailed: [{ text: "", date: new Date().toLocaleDateString('vi-VN') }, ...(p.detailed || [])]}))}>
-                        <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 14 }}>+ Đánh giá mới</Text>
-                      </Pressable>
+                      isAdmin ? (
+                        <Pressable onPress={() => setEvalDraft(p => ({...p, detailed: [{ text: "", date: new Date().toLocaleDateString('vi-VN') }, ...(p.detailed || [])]}))}>
+                          <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 14 }}>+ Đánh giá mới</Text>
+                        </Pressable>
+                      ) : null
                     }
                   />
                   <Card>
@@ -606,12 +922,14 @@ export default function UserProfileScreen() {
                         <View key={index} style={{ padding: 12, borderBottomWidth: index !== (evalDraft.detailed?.length || 0) - 1 ? 1 : 0, borderColor: '#E5E7EB' }}>
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#374151' }}>Bản ghi #{evalDraft.detailed!.length - index}</Text>
-                             <Pressable onPress={() => {
-                                const newDet = (evalDraft.detailed || []).filter((_, i) => i !== index);
-                                setEvalDraft(p => ({...p, detailed: newDet}));
-                             }}>
-                               <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: 'bold' }}>Xóa</Text>
-                             </Pressable>
+                             {isAdmin ? (
+                               <Pressable onPress={() => {
+                                  const newDet = (evalDraft.detailed || []).filter((_, i) => i !== index);
+                                  setEvalDraft(p => ({...p, detailed: newDet}));
+                               }}>
+                                 <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: 'bold' }}>Xóa</Text>
+                               </Pressable>
+                             ) : null}
                           </View>
                           
                           <TextInput 
@@ -678,6 +996,60 @@ function IconBtn({ icon, label, onPress, danger, disabled }: any) {
   );
 }
 
+function SolidButton({ icon, label, onPress, disabled, style }: any) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        {
+          minHeight: 44,
+          borderRadius: 12,
+          backgroundColor: "#1877F2",
+          borderWidth: 1,
+          borderColor: "#2563EB",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          opacity: disabled ? 0.6 : 1,
+        },
+        style,
+      ]}
+    >
+      <Ionicons name={icon} size={16} color="#FFF" />
+      <Text style={{ color: "#FFF", fontSize: 13, fontWeight: "900" }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function OutlineButton({ icon, label, onPress, disabled, style }: any) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        {
+          minHeight: 44,
+          borderRadius: 12,
+          backgroundColor: "#FFF",
+          borderWidth: 1,
+          borderColor: "#D1D5DB",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          opacity: disabled ? 0.6 : 1,
+        },
+        style,
+      ]}
+    >
+      <Ionicons name={icon} size={16} color="#111827" />
+      <Text style={{ color: "#111827", fontSize: 13, fontWeight: "900" }}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function Chip({ icon, text }: any) {
   const safe = (text ?? "").trim() || "—";
   return (
@@ -685,6 +1057,30 @@ function Chip({ icon, text }: any) {
       <Ionicons name={icon} size={14} color="#1D4ED8" />
       <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>{safe}</Text>
     </View>
+  );
+}
+
+function ProfileTabPill({ label, icon, active, onPress }: any) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 999,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        backgroundColor: active ? "#DBEAFE" : "#FFF",
+        borderWidth: 1,
+        borderColor: active ? "#93C5FD" : "#E5E7EB",
+      }}
+    >
+      <Ionicons name={icon} size={14} color={active ? "#1D4ED8" : "#6B7280"} />
+      <Text style={{ fontSize: 12, fontWeight: "900", color: active ? "#1D4ED8" : "#475569" }}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -729,6 +1125,21 @@ function InfoRow({ icon, label, value, onPressValue, valueColor, valueUnderline 
   );
 }
 
+function FileRow({ icon, name, meta }: any) {
+  return (
+    <View style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+      <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name={icon} size={20} color="#111827" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 14, fontWeight: "900", color: "#111827" }}>{name}</Text>
+        <Text style={{ marginTop: 3, fontSize: 12, color: "#6B7280" }}>{meta}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+    </View>
+  );
+}
+
 function Field({ label, value, onChange, multiline, keyboardType }: any) {
   return (
     <View style={{ padding: 12 }}>
@@ -738,12 +1149,4 @@ function Field({ label, value, onChange, multiline, keyboardType }: any) {
   );
 }
 
-function ActionRow({ icon, title, subtitle, onPress }: any) {
-  return (
-    <Pressable onPress={onPress} style={{ marginBottom: 10, padding: 12, borderRadius: 16, backgroundColor: "white", borderWidth: 1, borderColor: "#E5E7EB", flexDirection: "row", gap: 10, alignItems: "center" }}>
-      <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center" }}><Ionicons name={icon} size={20} color="#1D4ED8" /></View>
-      <View style={{ flex: 1 }}><Text style={{ fontSize: 13, fontWeight: "900", color: "#111827" }}>{title}</Text><Text style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>{subtitle}</Text></View>
-      <Ionicons name="chevron-forward" size={18} color="#6B7280" />
-    </Pressable>
-  );
-}
+

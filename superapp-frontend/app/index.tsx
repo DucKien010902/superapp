@@ -24,6 +24,9 @@ export default function Home() {
   const { user, token, refreshMe } = useAuth(); // Lấy user từ AuthContext
   
   const [latestVer, setLatestVer] = useState<any>(null);
+  const GENNOVAX_WEB_URL = "https://gennovax.vn";
+  const GENNOVAX_LOGO_URL =
+    "https://www.gennovax.vn/images/genbio1-1.png";
   
   // State cho form của Admin
   const [newVersionCode, setNewVersionCode] = useState("");
@@ -89,6 +92,19 @@ export default function Home() {
   // Logic nhận diện trạng thái "Đã xem"
   const isUpToDateOrViewed = !latestVer || user?.lastViewedVersion === latestVer?.versionCode;
 
+  const openGennovaxWeb = async () => {
+    try {
+      const canOpen = await Linking.canOpenURL(GENNOVAX_WEB_URL);
+      if (!canOpen) {
+        Alert.alert("Loi", "Khong mo duoc link Gennovax.");
+        return;
+      }
+      await Linking.openURL(GENNOVAX_WEB_URL);
+    } catch {
+      Alert.alert("Loi", "Khong mo duoc trinh duyet.");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar
@@ -137,6 +153,13 @@ export default function Home() {
                 icon="people-outline"
                 tone="blue"
                 onPress={() => router.push("/contact/" as any)}
+              />
+              <AppIconTile
+                label="Gennovax"
+                icon="globe-outline"
+                tone="sky"
+                logoUri={GENNOVAX_LOGO_URL}
+                onPress={openGennovaxWeb}
               />
             </View>
           </FolderCard>

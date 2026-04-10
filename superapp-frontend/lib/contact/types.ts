@@ -1,15 +1,32 @@
 export interface EvaluationItem {
   text: string;
-  date: string; // VD: '2023-10-25'
+  date: string;
 }
 
 export interface UserEvaluation {
-  score?: string;     // Chấm điểm
-  attitude?: string;  // Thái độ
-  skill?: string;     // Trình độ
-  general?: string[]; // Đánh giá tổng quan (Tối đa 3)
-  detailed?: EvaluationItem[]; // Đánh giá chi tiết
+  score?: string;
+  attitude?: string;
+  skill?: string;
+  general?: string[];
+  detailed?: EvaluationItem[];
 }
+
+export type UserImage = {
+  id?: string;
+  url: string;
+  caption?: string;
+  createdAt?: string;
+};
+
+export type UserFile = {
+  id?: string;
+  name: string;
+  url: string;
+  mimeType?: string;
+  size?: number;
+  createdAt?: string;
+};
+
 export type UserPublic = {
   id: string;
   email: string;
@@ -20,18 +37,18 @@ export type UserPublic = {
     displayName: string;
     avatarUrl?: string;
     coverUrl?: string;
-
     bio?: string;
     gender?: string;
     birthday?: string;
     phone?: string;
-
     location?: { city?: string; country?: string };
     work?: string;
     education?: string;
     links?: Array<{ label: string; url: string }>;
   };
-  evaluation?: UserEvaluation; // <--- THÊM DÒNG NÀY
+  evaluation?: UserEvaluation;
+  images?: UserImage[];
+  files?: UserFile[];
   createdAt?: string;
   updatedAt?: string;
 };
@@ -54,6 +71,33 @@ export type FriendRequestItem = {
   requester: UserPublic;
   createdAt: string;
 };
+
+export type GroupImage = {
+  id?: string;
+  url: string;
+  caption?: string;
+  createdBy?: string;
+  createdAt?: string;
+};
+
+export type GroupDocument = {
+  id?: string;
+  name: string;
+  url: string;
+  mimeType?: string;
+  size?: number;
+  createdBy?: string;
+  createdAt?: string;
+};
+
+export type GroupPost = {
+  id: string;
+  content: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Group = {
   id: string;
   name: string;
@@ -65,24 +109,9 @@ export type Group = {
   isHidden?: boolean;
   memberIds: string[];
   myRole: "owner" | "admin" | "member";
+  images?: GroupImage[];
+  documents?: GroupDocument[];
+  posts?: GroupPost[];
   createdAt?: string;
   updatedAt?: string;
-};
-
-export type GroupNoticeItem = {
-  id: string;
-  text: string;
-  createdBy: string;
-  createdAt: string;
-};
-
-export type GroupNotice = {
-  id: string;
-  groupId: string;
-  title: string;
-  isPinned: boolean;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  items: GroupNoticeItem[];
 };
