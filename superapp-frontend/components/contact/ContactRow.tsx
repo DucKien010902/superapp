@@ -1,6 +1,8 @@
 import type { Friend } from "@/lib/contact/types";
 import { Image, Pressable, Text, View } from "react-native";
 
+const SKY = "#0284C7";
+
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
   const a = parts[0]?.[0] ?? "U";
@@ -32,7 +34,7 @@ export default function ContactRow({
           width: 44,
           height: 44,
           borderRadius: 18,
-          backgroundColor: "#1340a1",
+          backgroundColor: SKY,
           alignItems: "center",
           justifyContent: "center",
           marginRight: 12,

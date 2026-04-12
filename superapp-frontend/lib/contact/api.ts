@@ -47,13 +47,34 @@ function mapGroup(g: any): Group {
   };
 }
 
+function mapUser(u: any): UserPublic {
+  return {
+    ...u,
+    id: u?.id || u?._id,
+    images: Array.isArray(u?.images)
+      ? u.images.map((item: any) => ({ ...item, id: item.id || item._id }))
+      : [],
+    files: Array.isArray(u?.files)
+      ? u.files.map((item: any) => ({ ...item, id: item.id || item._id }))
+      : [],
+  };
+}
+
 export async function fetchMe(token: string): Promise<UserPublic> {
   const r = await http<{ user: UserPublic }>("/api/users/me", token);
-  return r.user;
+  return mapUser(r.user);
 }
 
 export type UpdateMePayload = {
   profile?: Partial<UserPublic["profile"]>;
+};
+
+export type MediaScope = "user" | "group";
+export type MediaKind = "image" | "file" | "avatar" | "cover";
+export type MediaUploadFile = {
+  uri: string;
+  name: string;
+  type?: string;
 };
 
 export async function updateMe(token: string, payload: UpdateMePayload): Promise<UserPublic> {
@@ -61,14 +82,15 @@ export async function updateMe(token: string, payload: UpdateMePayload): Promise
     method: "PATCH",
     body: JSON.stringify(payload),
   });
-  return r.user;
+  return mapUser(r.user);
 }
 
 export async function fetchUserById(
   token: string,
   id: string
 ): Promise<{ user: UserPublic; relationship: Relationship }> {
-  return http(`/api/users/${id}`, token);
+  const r = await http<{ user: UserPublic; relationship: Relationship }>(`/api/users/${id}`, token);
+  return { ...r, user: mapUser(r.user) };
 }
 
 export async function searchUsers(
@@ -82,12 +104,12 @@ export async function searchUsers(
   if (opts?.skip != null) qs.set("skip", String(opts.skip));
 
   const r = await http<{ items: UserPublic[] }>(`/api/users?${qs.toString()}`, token);
-  return r.items;
+  return r.items.map(mapUser);
 }
 
 export async function fetchFriends(token: string): Promise<Friend[]> {
   const r = await http<{ items: UserPublic[] }>("/api/friends", token);
-  return r.items.map((u) => ({
+  return r.items.map(mapUser).map((u) => ({
     id: u.id,
     name: u.profile?.displayName || "-",
     phone: u.profile?.phone || "",
@@ -121,7 +143,7 @@ export async function adminCreateFriend(
     method: "POST",
     body: JSON.stringify(payload),
   });
-  return r.user;
+  return mapUser(r.user);
 }
 
 export async function adminUpdateUser(
@@ -138,7 +160,7 @@ export async function adminUpdateUser(
     method: "PATCH",
     body: JSON.stringify(payload),
   });
-  return r.user;
+  return mapUser(r.user);
 }
 
 export async function adminDeleteUser(token: string, userId: string): Promise<boolean> {
@@ -283,6 +305,62 @@ export async function updateGroupPost(
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export async function uploadMedia(
+  token: string,
+  payload: {
+    scope: MediaScope;
+    ownerId: string;
+    kind: MediaKind;
+    files: MediaUploadFile[];
+  }
+): Promise<{ success: true; items: any[]; user?: UserPublic; group?: Group }> {
+  const form = new FormData();
+  form.append("scope", payload.scope);
+  form.append("ownerId", payload.ownerId);
+  form.append("kind", payload.kind);
+
+  for (const file of payload.files) {
+    form.append("files", {
+      uri: file.uri,
+      name: file.name,
+      type: file.type || "application/octet-stream",
+    } as any);
+  }
+
+  const res = await fetch(`${API_URL}/api/media/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: form,
+  });
+
+  const text = await res.text().catch(() => "");
+  if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
+  const data = JSON.parse(text);
+  if (data.user) data.user = mapUser(data.user);
+  if (data.group) data.group = mapGroup(data.group);
+  return data;
+}
+
+export async function deleteMedia(
+  token: string,
+  payload: {
+    scope: MediaScope;
+    ownerId: string;
+    kind: MediaKind;
+    mediaId?: string;
+  }
+): Promise<{ success: true; user?: UserPublic; group?: Group }> {
+  const data = await http<{ success: true; user?: UserPublic; group?: Group }>("/api/media", token, {
+    method: "DELETE",
+    body: JSON.stringify(payload),
+  });
+  if (data.user) data.user = mapUser(data.user);
+  if (data.group) data.group = mapGroup(data.group);
+  return data;
 }
 
 export async function setGroupMemberRole(

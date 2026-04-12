@@ -3,13 +3,17 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
   Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
+import KeyboardSafeModalFrame from "./KeyboardSafeModalFrame";
+
+const SKY = "#0284C7";
+const SKY_DARK = "#0369A1";
 
 // 1. MANG InputRow RA NGOÀI COMPONENT CHÍNH
 const InputRow = ({
@@ -124,26 +128,13 @@ export default function CreateFriendModal({
   };
 
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+    <KeyboardSafeModalFrame visible={open} onRequestClose={onClose}>
         {/* Code View và Layout của bạn giữ nguyên, không thay đổi gì cả */}
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(0,0,0,0.45)",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 16,
-        }}
-      >
-        <Pressable
-          onPress={onClose}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-        />
-
         <View
           style={{
             width: "100%",
             maxWidth: 440,
+            maxHeight: "80%",
             borderRadius: 22,
             backgroundColor: "white",
             padding: 16,
@@ -156,6 +147,7 @@ export default function CreateFriendModal({
             elevation: 10,
           }}
         >
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingBottom: 4 }}>
           {/* Header */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -164,7 +156,7 @@ export default function CreateFriendModal({
                   width: 38,
                   height: 38,
                   borderRadius: 12,
-                  backgroundColor: "#325ebd",
+                  backgroundColor: SKY,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
@@ -295,7 +287,9 @@ export default function CreateFriendModal({
                 style={{
                   paddingVertical: 12,
                   borderRadius: 14,
-                  backgroundColor: "#111827",
+                  backgroundColor: SKY,
+                  borderWidth: 1,
+                  borderColor: SKY_DARK,
                   alignItems: "center",
                   justifyContent: "center",
                   flexDirection: "row",
@@ -333,7 +327,7 @@ export default function CreateFriendModal({
                   paddingHorizontal: 14,
                   paddingVertical: 10,
                   borderRadius: 14,
-                  backgroundColor: "rgba(17,24,39,0.9)",
+                  backgroundColor: "rgba(2,132,199,0.92)",
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 10,
@@ -344,8 +338,8 @@ export default function CreateFriendModal({
               </View>
             </View>
           )}
+          </ScrollView>
         </View>
-      </View>
-    </Modal>
+    </KeyboardSafeModalFrame>
   );
 }

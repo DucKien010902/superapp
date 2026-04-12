@@ -1,17 +1,20 @@
 ﻿import Screen from "@/components/Screen";
+import KeyboardSafeModalFrame from "@/components/contact/KeyboardSafeModalFrame";
 import { useAuth } from "@/lib/auth";
-import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import {
   acceptFriend,
   adminDeleteUser,
   adminUpdateUser,
   cancelOrUnfriend,
+  deleteMedia,
   fetchUserById,
   openDM,
   requestFriend,
+  uploadMedia,
 } from "@/lib/contact/api";
 import type { Relationship, UserEvaluation, UserPublic } from "@/lib/contact/types";
 import { Ionicons } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -19,7 +22,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  KeyboardAvoidingView,
   Linking,
   Modal,
   Platform,
@@ -31,6 +33,11 @@ import {
 } from "react-native";
 
 type ProfileDraft = UserPublic["profile"];
+const SKY = "#0284C7";
+const SKY_DARK = "#0369A1";
+const SKY_SOFT = "#E0F2FE";
+const SKY_BORDER = "#7DD3FC";
+
 const DEFAULT_COVER_URL =
   "https://d28jzcg6y4v9j1.cloudfront.net/2025/05/04/hinh_nen_may_tinh_4k_bien_13_1746343476852.jpg";
 
@@ -110,8 +117,28 @@ async function openExternalLink(url?: string) {
   Linking.openURL(finalUrl);
 }
 
+function imageAssetName(uri: string, index = 0) {
+  return uri.split("/").pop() || `image_${Date.now()}_${index}.jpg`;
+}
+
+function imageMimeType(name: string) {
+  const ext = (name.split(".").pop() || "jpg").toLowerCase();
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  if (ext === "gif") return "image/gif";
+  return "image/jpeg";
+}
+
 type PreviewKind = "avatar" | "cover";
 type ContentTab = "all" | "images" | "files";
+type MediaPreview = {
+  kind: "image" | "file";
+  url: string;
+  name?: string;
+  mimeType?: string;
+  size?: number;
+  createdAt?: string;
+};
 
 function formatBytes(size?: number) {
   const n = Number(size || 0);
@@ -156,6 +183,7 @@ export default function UserProfileScreen() {
   const isAdmin = String(me?.role || "") === "admin";
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [saveNoticeProgress, setSaveNoticeProgress] = useState(1);
 
@@ -171,6 +199,7 @@ export default function UserProfileScreen() {
   // preview
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewKind, setPreviewKind] = useState<PreviewKind>("cover");
+  const [mediaPreview, setMediaPreview] = useState<MediaPreview | null>(null);
 
   const load = async () => {
     if (!token || !id) return;
@@ -348,6 +377,7 @@ export default function UserProfileScreen() {
   };
 
   const doUpload = async (kind: "avatar" | "cover", mode: "camera" | "library") => {
+    if (!token || !id || !isAdmin) return;
     try {
       const uri = await pickImage(mode);
       if (!uri) return;
@@ -357,8 +387,22 @@ export default function UserProfileScreen() {
           text: "Upload", onPress: async () => {
             try {
               setUploading(kind);
-              const url = await uploadImageToCloudinary(uri);
-              setProfileDraft((p) => ({ ...p, [kind === "avatar" ? "avatarUrl" : "coverUrl"]: url }));
+              const name = imageAssetName(uri);
+              const r = await uploadMedia(token, {
+                scope: "user",
+                ownerId: String(id),
+                kind,
+                files: [{ uri, name, type: imageMimeType(name) }],
+              });
+              if (r.user) {
+                setUser(r.user);
+                const updatedProfile = normalizeProfile(r.user.profile);
+                setProfileDraft((p) => ({
+                  ...p,
+                  avatarUrl: updatedProfile.avatarUrl,
+                  coverUrl: updatedProfile.coverUrl,
+                }));
+              }
             } catch (e: any) {
               Alert.alert("Lỗi upload", e?.message || "Upload thất bại");
             } finally {
@@ -370,6 +414,80 @@ export default function UserProfileScreen() {
     } catch (e: any) {
       Alert.alert("Lỗi", e?.message || "Không thao tác được ảnh");
     }
+  };
+
+  const uploadUserImages = async () => {
+    if (!token || !id || !isAdmin) return;
+    try {
+      const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!lib.granted) throw new Error("Bạn cần cấp quyền truy cập thư viện ảnh.");
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.9,
+        allowsMultipleSelection: true,
+      });
+      if (result.canceled) return;
+
+      setUploadingMedia(true);
+      const files = (result.assets || []).map((asset, idx) => {
+        const name = asset.fileName || imageAssetName(asset.uri, idx);
+        return { uri: asset.uri, name, type: asset.mimeType || imageMimeType(name) };
+      });
+      const r = await uploadMedia(token, { scope: "user", ownerId: String(id), kind: "image", files });
+      if (r.user) setUser(r.user);
+    } catch (e: any) {
+      Alert.alert("Lỗi upload", e?.message || "Không upload được ảnh");
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const uploadUserFiles = async () => {
+    if (!token || !id || !isAdmin) return;
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+
+      setUploadingMedia(true);
+      const files = (result.assets || []).map((asset) => ({
+        uri: asset.uri,
+        name: asset.name || `file_${Date.now()}`,
+        type: asset.mimeType || "application/octet-stream",
+      }));
+      const r = await uploadMedia(token, { scope: "user", ownerId: String(id), kind: "file", files });
+      if (r.user) setUser(r.user);
+    } catch (e: any) {
+      Alert.alert("Lỗi upload", e?.message || "Không upload được file");
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const deleteUserMedia = (kind: "image" | "file", mediaId?: string) => {
+    if (!token || !id || !mediaId || !isAdmin) return;
+    Alert.alert("Xóa mục này", "Bạn muốn xóa mục này khỏi hồ sơ và MinIO?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Xóa",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const r = await deleteMedia(token, {
+              scope: "user",
+              ownerId: String(id),
+              kind,
+              mediaId,
+            });
+            if (r.user) setUser(r.user);
+          } catch (e: any) {
+            Alert.alert("Lỗi", e?.message || "Không xóa được mục này");
+          }
+        },
+      },
+    ]);
   };
 
   const openPreview = (kind: PreviewKind) => {
@@ -398,12 +516,16 @@ export default function UserProfileScreen() {
   const cover = user?.profile?.coverUrl || DEFAULT_COVER_URL;
   const avatar = user?.profile?.avatarUrl || "";
   const galleryImages = [
-    avatar,
-    cover,
-    ...((user?.images || []).map((x) => x.url).filter(Boolean) as string[]),
-  ]
-    .filter(Boolean)
-    .slice(0, 30);
+    ...(avatar ? [{ url: avatar, locked: true }] : []),
+    ...(cover ? [{ url: cover, locked: true }] : []),
+    ...((user?.images || [])
+      .filter((x) => !!x.url)
+      .map((x) => ({ url: x.url, id: x.id, locked: false })) as {
+      url: string;
+      id?: string;
+      locked: boolean;
+    }[]),
+  ].slice(0, 30);
   const profileFiles = user?.files || [];
 
   return (
@@ -459,7 +581,7 @@ export default function UserProfileScreen() {
 
               {!isAdmin && (
                 <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
-                  <Pressable onPress={onPrimary} disabled={busy} style={{ flex: 1, paddingVertical: 12, borderRadius: 14, backgroundColor: "#1877F2", alignItems: "center", opacity: busy ? 0.7 : 1, flexDirection: "row", justifyContent: "center", gap: 8 }}>
+                  <Pressable onPress={onPrimary} disabled={busy} style={{ flex: 1, paddingVertical: 12, borderRadius: 14, backgroundColor: SKY, borderWidth: 1, borderColor: SKY_DARK, alignItems: "center", opacity: busy ? 0.7 : 1, flexDirection: "row", justifyContent: "center", gap: 8 }}>
                     <Ionicons name={cta.icon} size={18} color="white" />
                     <Text style={{ color: "white", fontWeight: "900" }}>{busy ? "..." : cta.text}</Text>
                   </Pressable>
@@ -514,7 +636,7 @@ export default function UserProfileScreen() {
                 <Divider />
                 <InfoRow icon="mail-outline" label="Email" value={vOrDash(user?.email)} />
                 <Divider />
-                <InfoRow icon="call-outline" label="SĐT" value={vOrDash(user?.profile?.phone)} valueColor={hasPhone ? "#2563EB" : "#111827"} valueUnderline={hasPhone} onPressValue={hasPhone ? () => callPhone(user?.profile?.phone) : undefined} />
+                <InfoRow icon="call-outline" label="SĐT" value={vOrDash(user?.profile?.phone)} valueColor={hasPhone ? SKY_DARK : "#111827"} valueUnderline={hasPhone} onPressValue={hasPhone ? () => callPhone(user?.profile?.phone) : undefined} />
                 <Divider />
                 <InfoRow icon="man-outline" label="Giới tính" value={vOrDash(user?.profile?.gender)} />
                 <Divider />
@@ -559,7 +681,8 @@ export default function UserProfileScreen() {
               <SectionTitle icon="images-outline" title="Ảnh" />
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
                 <Pressable
-                  onPress={() => Alert.alert("Thêm ảnh", "Chức năng thêm ảnh sẽ nối logic sau.")}
+                  onPress={uploadUserImages}
+                  disabled={!isAdmin || uploadingMedia}
                   style={{
                     width: "31%",
                     aspectRatio: 1,
@@ -572,15 +695,16 @@ export default function UserProfileScreen() {
                     justifyContent: "center",
                   }}
                 >
-                  <Ionicons name="add" size={28} color="#2563EB" />
-                  <Text style={{ marginTop: 6, fontSize: 12, fontWeight: "800", color: "#1D4ED8" }}>
-                    Thêm
+                  <Ionicons name={uploadingMedia ? "cloud-upload-outline" : "add"} size={28} color={SKY_DARK} />
+                  <Text style={{ marginTop: 6, fontSize: 12, fontWeight: "800", color: SKY_DARK }}>
+                    {uploadingMedia ? "Đang tải" : "Thêm"}
                   </Text>
                 </Pressable>
 
-                {galleryImages.map((uri, idx) => (
-                  <View
-                    key={`${uri}-${idx}`}
+                {galleryImages.map((item, idx) => (
+                  <Pressable
+                    key={`${item.url}-${idx}`}
+                    onPress={() => setMediaPreview({ kind: "image", url: item.url, name: "Ảnh" })}
                     style={{
                       width: "31%",
                       aspectRatio: 1,
@@ -589,8 +713,26 @@ export default function UserProfileScreen() {
                       backgroundColor: "#E5E7EB",
                     }}
                   >
-                    <Image source={{ uri }} style={{ width: "100%", height: "100%" }} />
-                  </View>
+                    <Image source={{ uri: item.url }} style={{ width: "100%", height: "100%" }} />
+                    {isAdmin && !item.locked && item.id ? (
+                      <Pressable
+                        onPress={() => deleteUserMedia("image", item.id)}
+                        style={{
+                          position: "absolute",
+                          right: 6,
+                          top: 6,
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                          backgroundColor: "rgba(17,24,39,0.72)",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Ionicons name="trash-outline" size={15} color="white" />
+                      </Pressable>
+                    ) : null}
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -601,7 +743,8 @@ export default function UserProfileScreen() {
               <SectionTitle icon="document-text-outline" title="File" />
               <Card>
                 <Pressable
-                  onPress={() => Alert.alert("Thêm file", "Chức năng thêm file sẽ nối logic sau.")}
+                  onPress={uploadUserFiles}
+                  disabled={!isAdmin || uploadingMedia}
                   style={{
                     padding: 14,
                     flexDirection: "row",
@@ -610,12 +753,14 @@ export default function UserProfileScreen() {
                     backgroundColor: "#F8FBFF",
                   }}
                 >
-                  <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center" }}>
-                    <Ionicons name="add" size={22} color="#1D4ED8" />
+                  <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: SKY_SOFT, alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name={uploadingMedia ? "cloud-upload-outline" : "add"} size={22} color={SKY_DARK} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "900", color: "#111827" }}>Thêm file</Text>
-                    <Text style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>Tạo một file demo mới hoặc nối upload sau</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "900", color: "#111827" }}>
+                      {uploadingMedia ? "Đang upload..." : "Thêm file"}
+                    </Text>
+                    <Text style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>Chọn một hoặc nhiều file để lưu vào MinIO</Text>
                   </View>
                 </Pressable>
                 <Divider />
@@ -630,6 +775,17 @@ export default function UserProfileScreen() {
                         icon={fileIcon(file.name, file.mimeType)}
                         name={file.name || "Untitled"}
                         meta={`${formatBytes(file.size)} • ${formatDate(file.createdAt)}`}
+                        onPress={() =>
+                          setMediaPreview({
+                            kind: String(file.mimeType || "").startsWith("image/") ? "image" : "file",
+                            url: file.url,
+                            name: file.name || "Untitled",
+                            mimeType: file.mimeType,
+                            size: file.size,
+                            createdAt: file.createdAt,
+                          })
+                        }
+                        onDelete={isAdmin && file.id ? () => deleteUserMedia("file", file.id) : undefined}
                       />
                       {idx !== profileFiles.length - 1 ? <Divider /> : null}
                     </View>
@@ -735,10 +891,8 @@ export default function UserProfileScreen() {
         {/* ======================================================= */}
         {/* MODAL SỬA PROFILE (Đã khôi phục đủ trường) */}
         {/* ======================================================= */}
-        <Modal visible={editProfileOpen} transparent animationType="slide" onRequestClose={() => setEditProfileOpen(false)}>
-          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)" }}>
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-              <View style={{ width: "95%", height: "85%", backgroundColor: "#F8FAFC", borderRadius: 28, overflow: "hidden" }}>
+        <KeyboardSafeModalFrame visible={editProfileOpen} onRequestClose={() => setEditProfileOpen(false)} padding={10}>
+              <View style={{ width: "100%", height: "90%", backgroundColor: "#F8FAFC", borderRadius: 28, overflow: "hidden" }}>
                 <View style={{ alignItems: "center", paddingTop: 10 }}>
                   <View style={{ width: 44, height: 5, borderRadius: 999, backgroundColor: "#CBD5E1" }} />
                 </View>
@@ -766,7 +920,11 @@ export default function UserProfileScreen() {
                   </View>
                 </View>
 
-                <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                  contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+                >
                   <SectionTitle icon="document-text-outline" title="Thông tin cơ bản" />
                   <Card>
                     <Field label="Tên hiển thị *" value={profileDraft.displayName} onChange={(t:any) => setProfileDraft((p) => ({ ...p, displayName: t }))} />
@@ -815,30 +973,30 @@ export default function UserProfileScreen() {
                   </Card>
                 </ScrollView>
               </View>
-            </KeyboardAvoidingView>
-          </View>
-        </Modal>
+        </KeyboardSafeModalFrame>
 
         {/* ======================================================= */}
         {/* MODAL ĐÁNH GIÁ (EVALUATION) - UI MỚI GỌN GÀNG HƠN */}
         {/* ======================================================= */}
-        <Modal visible={evalOpen} transparent animationType="slide" onRequestClose={() => setEvalOpen(false)}>
-          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-              <View style={{ width: "95%", maxHeight: "85%", backgroundColor: "#F3F4F6", borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 8 }}>
+        <KeyboardSafeModalFrame visible={evalOpen} onRequestClose={() => setEvalOpen(false)} padding={10} backdropColor="rgba(0,0,0,0.5)">
+              <View style={{ width: "100%", height: "80%", backgroundColor: "#F3F4F6", borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 8 }}>
                 
                 {/* Header Modal */}
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "white", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderColor: "#E5E7EB" }}>
                   <Pressable onPress={() => setEvalOpen(false)} disabled={saving}><Text style={{ color: "#EF4444", fontSize: 15, fontWeight: "600" }}>Đóng</Text></Pressable>
                   <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>Đánh giá User</Text>
                   {isAdmin ? (
-                    <Pressable onPress={onSaveEval} disabled={saving}><Text style={{ color: saving ? "#9CA3AF" : "#1877F2", fontSize: 15, fontWeight: "bold" }}>{saving ? "Lưu..." : "Lưu"}</Text></Pressable>
+                    <Pressable onPress={onSaveEval} disabled={saving}><Text style={{ color: saving ? "#9CA3AF" : SKY, fontSize: 15, fontWeight: "bold" }}>{saving ? "Lưu..." : "Lưu"}</Text></Pressable>
                   ) : (
                     <Text style={{ color: "#9CA3AF", fontSize: 13, fontWeight: "700" }}>Xem</Text>
                   )}
                 </View>
 
-                <ScrollView contentContainerStyle={{ padding: 16 }}>
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                  contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+                >
                   
                   {/* 1. Điểm, Thái độ, Trình độ (GỌN LẠI VÀO 2 CỘT) */}
                   <SectionTitle icon="stats-chart-outline" title="Thông số cơ bản" />
@@ -864,7 +1022,7 @@ export default function UserProfileScreen() {
                     rightAction={
                       isAdmin && (!evalDraft.general || evalDraft.general.length < 3) && (
                         <Pressable onPress={() => setEvalDraft(p => ({...p, general: [...(p.general || []), ""]}))}>
-                          <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 14 }}>+ Thêm</Text>
+                          <Text style={{ color: SKY_DARK, fontWeight: 'bold', fontSize: 14 }}>+ Thêm</Text>
                         </Pressable>
                       )
                     }
@@ -911,7 +1069,7 @@ export default function UserProfileScreen() {
                     rightAction={
                       isAdmin ? (
                         <Pressable onPress={() => setEvalDraft(p => ({...p, detailed: [{ text: "", date: new Date().toLocaleDateString('vi-VN') }, ...(p.detailed || [])]}))}>
-                          <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 14 }}>+ Đánh giá mới</Text>
+                          <Text style={{ color: SKY_DARK, fontWeight: 'bold', fontSize: 14 }}>+ Đánh giá mới</Text>
                         </Pressable>
                       ) : null
                     }
@@ -962,9 +1120,13 @@ export default function UserProfileScreen() {
 
                 </ScrollView>
               </View>
-            </KeyboardAvoidingView>
-          </View>
-        </Modal>
+        </KeyboardSafeModalFrame>
+
+        <MediaPreviewModal
+          item={mediaPreview}
+          onClose={() => setMediaPreview(null)}
+          onOpenLink={(url) => openExternalLink(url)}
+        />
 
         {/* ======================================================= */}
         {/* PREVIEW IMAGE MODAL */}
@@ -987,7 +1149,7 @@ export default function UserProfileScreen() {
 
 /* ================== UI components ================== */
 function IconBtn({ icon, label, onPress, danger, disabled }: any) {
-  const bg = danger ? "rgba(239,68,68,0.9)" : "rgba(17,24,39,0.7)";
+  const bg = danger ? "rgba(239,68,68,0.9)" : "rgba(2,132,199,0.86)";
   return (
     <Pressable onPress={onPress} disabled={disabled} style={{ flexDirection: "row", gap: 6, alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: bg, opacity: disabled ? 0.55 : 1 }}>
       <Ionicons name={icon} size={16} color="white" />
@@ -1005,9 +1167,9 @@ function SolidButton({ icon, label, onPress, disabled, style }: any) {
         {
           minHeight: 44,
           borderRadius: 12,
-          backgroundColor: "#1877F2",
+          backgroundColor: SKY,
           borderWidth: 1,
-          borderColor: "#2563EB",
+          borderColor: SKY_DARK,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
@@ -1053,8 +1215,8 @@ function OutlineButton({ icon, label, onPress, disabled, style }: any) {
 function Chip({ icon, text }: any) {
   const safe = (text ?? "").trim() || "—";
   return (
-    <View style={{ flexDirection: "row", gap: 6, alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: "#EEF2FF", borderWidth: 1, borderColor: "#E5E7EB" }}>
-      <Ionicons name={icon} size={14} color="#1D4ED8" />
+    <View style={{ flexDirection: "row", gap: 6, alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: SKY_SOFT, borderWidth: 1, borderColor: "#E5E7EB" }}>
+      <Ionicons name={icon} size={14} color={SKY_DARK} />
       <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>{safe}</Text>
     </View>
   );
@@ -1071,13 +1233,13 @@ function ProfileTabPill({ label, icon, active, onPress }: any) {
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
-        backgroundColor: active ? "#DBEAFE" : "#FFF",
+        backgroundColor: active ? SKY_SOFT : "#FFF",
         borderWidth: 1,
-        borderColor: active ? "#93C5FD" : "#E5E7EB",
+        borderColor: active ? SKY_BORDER : "#E5E7EB",
       }}
     >
-      <Ionicons name={icon} size={14} color={active ? "#1D4ED8" : "#6B7280"} />
-      <Text style={{ fontSize: 12, fontWeight: "900", color: active ? "#1D4ED8" : "#475569" }}>
+      <Ionicons name={icon} size={14} color={active ? SKY_DARK : "#6B7280"} />
+      <Text style={{ fontSize: 12, fontWeight: "900", color: active ? SKY_DARK : "#475569" }}>
         {label}
       </Text>
     </Pressable>
@@ -1088,8 +1250,8 @@ function SectionTitle({ icon, title, rightAction }: any) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#E5E7EB" }}>
-          <Ionicons name={icon} size={18} color="#1D4ED8" />
+        <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: SKY_SOFT, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#E5E7EB" }}>
+          <Ionicons name={icon} size={18} color={SKY_DARK} />
         </View>
         <Text style={{ fontSize: 15, fontWeight: "900", color: "#111827" }}>{title}</Text>
       </View>
@@ -1105,6 +1267,61 @@ function Card({ children }: any) {
 
 function Divider() { return <View style={{ height: 1, backgroundColor: "#F3F4F6" }} />; }
 
+function MediaPreviewModal({
+  item,
+  onClose,
+  onOpenLink,
+}: {
+  item: MediaPreview | null;
+  onClose: () => void;
+  onOpenLink: (url: string) => void;
+}) {
+  const isImage = item?.kind === "image" || String(item?.mimeType || "").startsWith("image/");
+  return (
+    <Modal visible={!!item} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: isImage ? "rgba(0,0,0,0.92)" : "rgba(0,0,0,0.55)" }}>
+        <View style={{ paddingTop: 44, paddingHorizontal: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Pressable onPress={onClose} style={{ padding: 10 }}>
+            <Ionicons name="close" size={26} color="white" />
+          </Pressable>
+          <Text numberOfLines={1} style={{ flex: 1, textAlign: "center", color: "white", fontWeight: "900" }}>
+            {item?.name || "Xem trước"}
+          </Text>
+          <Pressable onPress={() => item?.url && onOpenLink(item.url)} style={{ padding: 10 }}>
+            <Ionicons name="open-outline" size={22} color="white" />
+          </Pressable>
+        </View>
+
+        {isImage && item?.url ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 14 }}>
+            <Image source={{ uri: item.url }} style={{ width: "100%", height: "100%", resizeMode: "contain", borderRadius: 12 }} />
+          </View>
+        ) : (
+          <View style={{ flex: 1, justifyContent: "center", padding: 18 }}>
+            <Card>
+              <View style={{ padding: 16, alignItems: "center" }}>
+                <View style={{ width: 58, height: 58, borderRadius: 20, backgroundColor: SKY_SOFT, alignItems: "center", justifyContent: "center" }}>
+                  <Ionicons name={fileIcon(item?.name, item?.mimeType)} size={28} color={SKY_DARK} />
+                </View>
+                <Text numberOfLines={3} style={{ marginTop: 12, fontSize: 16, fontWeight: "900", color: "#111827", textAlign: "center" }}>
+                  {item?.name || "Untitled"}
+                </Text>
+                <Text style={{ marginTop: 6, fontSize: 12, color: "#6B7280" }}>
+                  {formatBytes(item?.size)} • {formatDate(item?.createdAt)}
+                </Text>
+                <Pressable onPress={() => item?.url && onOpenLink(item.url)} style={{ marginTop: 16, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 12, backgroundColor: SKY, borderWidth: 1, borderColor: SKY_DARK, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Ionicons name="open-outline" size={17} color="white" />
+                  <Text style={{ color: "white", fontWeight: "900" }}>Mở link</Text>
+                </Pressable>
+              </View>
+            </Card>
+          </View>
+        )}
+      </View>
+    </Modal>
+  );
+}
+
 function InfoRow({ icon, label, value, onPressValue, valueColor, valueUnderline }: any) {
   return (
     <View style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -1115,7 +1332,7 @@ function InfoRow({ icon, label, value, onPressValue, valueColor, valueUnderline 
         <Text style={{ fontSize: 12, color: "#6B7280", fontWeight: "800" }}>{label}</Text>
         {onPressValue ? (
           <Pressable onPress={onPressValue} style={({ pressed }) => pressed && { opacity: 0.7 }}>
-            <Text style={{ marginTop: 2, fontSize: 13, fontWeight: "900", color: valueColor ?? "#2563EB", textDecorationLine: valueUnderline ? "underline" : "none" }}>{value}</Text>
+            <Text style={{ marginTop: 2, fontSize: 13, fontWeight: "900", color: valueColor ?? SKY_DARK, textDecorationLine: valueUnderline ? "underline" : "none" }}>{value}</Text>
           </Pressable>
         ) : (
           <Text style={{ marginTop: 2, fontSize: 13, color: valueColor ?? "#111827", fontWeight: "900" }}>{value}</Text>
@@ -1125,9 +1342,9 @@ function InfoRow({ icon, label, value, onPressValue, valueColor, valueUnderline 
   );
 }
 
-function FileRow({ icon, name, meta }: any) {
+function FileRow({ icon, name, meta, onPress, onDelete }: any) {
   return (
-    <View style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+    <Pressable onPress={onPress} disabled={!onPress} style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
       <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" }}>
         <Ionicons name={icon} size={20} color="#111827" />
       </View>
@@ -1135,8 +1352,13 @@ function FileRow({ icon, name, meta }: any) {
         <Text style={{ fontSize: 14, fontWeight: "900", color: "#111827" }}>{name}</Text>
         <Text style={{ marginTop: 3, fontSize: 12, color: "#6B7280" }}>{meta}</Text>
       </View>
+      {onDelete ? (
+        <Pressable onPress={onDelete} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" }}>
+          <Ionicons name="trash-outline" size={16} color="#B91C1C" />
+        </Pressable>
+      ) : null}
       <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-    </View>
+    </Pressable>
   );
 }
 

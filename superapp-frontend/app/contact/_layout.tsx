@@ -4,6 +4,8 @@ import React from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const SKY = "#0284C7";
+
 export default function ContactLayout() {
   const pathname = usePathname();
   const router = useRouter();
@@ -91,14 +93,14 @@ export default function ContactLayout() {
                   <Ionicons
                     name={tab.active ? tab.activeIcon : tab.icon}
                     size={22}
-                    color={tab.active ? "#1340a1" : "#6B7280"}
+                    color={tab.active ? SKY : "#6B7280"}
                   />
                   <Text
                     style={{
                       marginTop: 4,
                       fontSize: 12,
                       fontWeight: "600",
-                      color: tab.active ? "#1340a1" : "#6B7280",
+                      color: tab.active ? SKY : "#6B7280",
                     }}
                   >
                     {tab.label}

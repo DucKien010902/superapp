@@ -4,6 +4,8 @@ import React from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const SKY = "#0284C7";
+
 export default function ContactTabsLayout() {
   const insets = useSafeAreaInsets();
 
@@ -18,7 +20,7 @@ export default function ContactTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#1340a1",
+        tabBarActiveTintColor: SKY,
         tabBarInactiveTintColor: "#6B7280",
         tabBarBackground: () => (
           <View style={{ flex: 1 }}>

@@ -14,6 +14,8 @@ type Row =
   | { kind: "friend"; friend: Friend }
   | { kind: "user"; user: UserPublic };
 
+const SKY = "#0284C7";
+const SKY_DARK = "#0369A1";
 const FIRST_PAGE = 5;
 const MORE_PAGE = 10; // tối đa thêm 5 nữa => tổng 10
 
@@ -133,7 +135,9 @@ export default function ContactsScreen() {
             paddingHorizontal: 14,
             paddingVertical: 10,
             borderRadius: 999,
-            backgroundColor: "#111827",
+            backgroundColor: SKY,
+            borderWidth: 1,
+            borderColor: SKY_DARK,
           }}
         >
           <Text style={{ color: "white", fontWeight: "800" }}>See more</Text>
@@ -178,7 +182,7 @@ export default function ContactsScreen() {
                 width: 36,
                 height: 36,
                 borderRadius: 18,
-                backgroundColor: "#1340a1",
+                backgroundColor: SKY,
                 alignItems: "center",
                 justifyContent: "center",
               }}

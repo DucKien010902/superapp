@@ -1,5 +1,6 @@
 import Screen from "@/components/Screen";
 import GroupRow from "@/components/contact/GroupRow";
+import KeyboardSafeModalFrame from "@/components/contact/KeyboardSafeModalFrame";
 import SearchBar from "@/components/contact/SearchBar";
 import { useAuth } from "@/lib/auth";
 import { createGroup, fetchFriends, fetchGroups } from "@/lib/contact/api";
@@ -8,12 +9,15 @@ import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
-  Modal,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
+
+const SKY = "#0284C7";
+const SKY_DARK = "#0369A1";
 
 export default function GroupsScreen() {
   const { token } = useAuth();
@@ -119,7 +123,7 @@ export default function GroupsScreen() {
             paddingHorizontal: 12,
             paddingVertical: 10,
             borderRadius: 14,
-            backgroundColor: "#1340a1",
+            backgroundColor: SKY,
           }}
         >
           <Text style={{ color: "white", fontWeight: "900", fontSize: 12 }}>
@@ -159,25 +163,14 @@ export default function GroupsScreen() {
       />
 
       {/* Create Group Modal */}
-      <Modal
+      <KeyboardSafeModalFrame
         visible={openCreate}
-        transparent
-        animationType="fade"
         onRequestClose={() => setOpenCreate(false)}
+        padding={18}
+        backdropColor="rgba(0,0,0,0.35)"
       >
-        <Pressable
-          onPress={() => setOpenCreate(false)}
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.35)",
-            justifyContent: "center",
-            padding: 18,
-          }}
-        >
-          <Pressable
-            onPress={() => {}}
-            style={{ backgroundColor: "white", borderRadius: 18, padding: 14 }}
-          >
+            <View style={{ width: "100%", maxHeight: "80%", backgroundColor: "white", borderRadius: 18, padding: 14 }}>
+              <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
             <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
               Tạo nhóm mới
             </Text>
@@ -234,7 +227,9 @@ export default function GroupsScreen() {
                   paddingHorizontal: 14,
                   paddingVertical: 10,
                   borderRadius: 14,
-                  backgroundColor: creating ? "#9CA3AF" : "#111827",
+                  backgroundColor: creating ? "#9CA3AF" : SKY,
+                  borderWidth: 1,
+                  borderColor: creating ? "#9CA3AF" : SKY_DARK,
                 }}
               >
                 <Text style={{ color: "white", fontWeight: "900" }}>
@@ -242,9 +237,9 @@ export default function GroupsScreen() {
                 </Text>
               </Pressable>
             </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+              </ScrollView>
+            </View>
+      </KeyboardSafeModalFrame>
     </Screen>
   );
 }

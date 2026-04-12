@@ -1,7 +1,7 @@
 import Screen from "@/components/Screen";
+import KeyboardSafeModalFrame from "@/components/contact/KeyboardSafeModalFrame";
 import { useAuth } from "@/lib/auth";
-import { uploadImageToCloudinary } from "@/lib/cloudinary";
-import { fetchMe, updateMe } from "@/lib/contact/api";
+import { fetchMe, updateMe, uploadMedia } from "@/lib/contact/api";
 import type { UserPublic } from "@/lib/contact/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -21,6 +20,10 @@ import {
 } from "react-native";
 
 type ProfileDraft = UserPublic["profile"];
+const SKY = "#0284C7";
+const SKY_DARK = "#0369A1";
+const SKY_SOFT = "#E0F2FE";
+const SKY_BORDER = "#7DD3FC";
 
 function vOrDash(v?: string) {
   const s = (v ?? "").trim();
@@ -50,6 +53,18 @@ function normalizeProfile(p?: ProfileDraft): ProfileDraft {
     education: p?.education || "",
     links: p?.links || [],
   };
+}
+
+function imageAssetName(uri: string) {
+  return uri.split("/").pop() || `image_${Date.now()}.jpg`;
+}
+
+function imageMimeType(name: string) {
+  const ext = (name.split(".").pop() || "jpg").toLowerCase();
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  if (ext === "gif") return "image/gif";
+  return "image/jpeg";
 }
 
 type PreviewKind = "avatar" | "cover";
@@ -188,27 +203,35 @@ export default function ProfileMeScreen() {
     kind: "avatar" | "cover",
     mode: "camera" | "library",
   ) => {
-    if (!edit) {
-      Alert.alert("Chỉnh sửa", "Bạn cần bấm 'Sửa' trước khi đổi ảnh.");
-      return;
-    }
+    if (!token || !me) return;
 
     try {
       const uri = await pickImage(mode);
       if (!uri) return;
 
-      Alert.alert("Xác nhận", "Upload ảnh này lên Cloudinary?", [
+      Alert.alert("Xác nhận", "Upload ảnh này lên MinIO?", [
         { text: "Không", style: "cancel" },
         {
           text: "Upload",
           onPress: async () => {
             try {
               setUploading(kind);
-              const url = await uploadImageToCloudinary(uri);
-              setDraft((p) => ({
-                ...p,
-                [kind === "avatar" ? "avatarUrl" : "coverUrl"]: url,
-              }));
+              const name = imageAssetName(uri);
+              const r = await uploadMedia(token, {
+                scope: "user",
+                ownerId: me.id,
+                kind,
+                files: [{ uri, name, type: imageMimeType(name) }],
+              });
+              if (r.user) {
+                setMe(r.user);
+                const updatedProfile = normalizeProfile(r.user.profile);
+                setDraft((p) => ({
+                  ...p,
+                  avatarUrl: updatedProfile.avatarUrl,
+                  coverUrl: updatedProfile.coverUrl,
+                }));
+              }
             } catch (e: any) {
               Alert.alert("Lỗi upload", e?.message || "Upload thất bại");
             } finally {
@@ -351,9 +374,9 @@ export default function ProfileMeScreen() {
                       paddingHorizontal: 14,
                       paddingVertical: 10,
                       borderRadius: 999,
-                      backgroundColor: "#1877F2",
+                      backgroundColor: SKY,
                       borderWidth: 1,
-                      borderColor: "#1D4ED8",
+                      borderColor: SKY_DARK,
                       shadowColor: "#000",
                       shadowOpacity: 0.16,
                       shadowRadius: 9,
@@ -420,27 +443,11 @@ export default function ProfileMeScreen() {
             </Card>
           </View>
         </ScrollView>
-        <Modal
-          visible={edit}
-          transparent
-          animationType="slide"
-          onRequestClose={onCancelEdit}
-        >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(0,0,0,0.45)",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              style={{ width: "95%", height: "85%" }}
-            >
+        <KeyboardSafeModalFrame visible={edit} onRequestClose={onCancelEdit} padding={10}>
               <View
                 style={{
-                  flex: 1,
+                  width: "100%",
+                  height: "80%",
                   backgroundColor: "#F8FAFC",
                   borderRadius: 28,
                   overflow: "hidden",
@@ -502,7 +509,11 @@ export default function ProfileMeScreen() {
                   </View>
                 </View>
 
-                <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                  contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+                >
                   <FormSectionTitle title="Thông tin cơ bản" />
                   <Card>
                     <Field
@@ -589,9 +600,7 @@ export default function ProfileMeScreen() {
                   </Card>
                 </ScrollView>
               </View>
-            </KeyboardAvoidingView>
-          </View>
-        </Modal>
+        </KeyboardSafeModalFrame>
         {/* ===== Upload menu (right button) ===== */}
         <Modal
           visible={uploadMenuOpen}
@@ -630,30 +639,30 @@ export default function ProfileMeScreen() {
               <Text
                 style={{ fontSize: 14, fontWeight: "900", color: "#111827" }}
               >
-                Tai anh len
+                Tải ảnh lên
               </Text>
               <Text style={{ marginTop: 4, fontSize: 12, color: "#6B7280" }}>
-                Chon loai anh ban muon sua (Avatar / Anh bia)
+                Chọn loại ảnh bạn muốn chỉnh sửa (Avatar / Ảnh bìa)
               </Text>
 
               <View style={{ height: 12 }} />
 
               <ActionRow
                 icon="person-circle-outline"
-                title="Doi anh dai dien"
+                title="Đởi ảnh đại diện"
                 subtitle={
                   uploading === "avatar" ? "Dang upload..." : "Chon anh va upload"
                 }
                 onPress={() => {
                   setUploadMenuOpen(false);
-                  Alert.alert("Anh dai dien", "Chon nguon anh", [
-                    { text: "Huy", style: "cancel" },
+                  Alert.alert("Ảnh đại diện", "Chọn nguồn ảnh", [
+                    { text: "Hủy", style: "cancel" },
                     {
-                      text: "Chup anh",
+                      text: "Chụp ảnh",
                       onPress: () => doUpload("avatar", "camera"),
                     },
                     {
-                      text: "Thu vien",
+                      text: "Thư viện",
                       onPress: () => doUpload("avatar", "library"),
                     },
                   ]);
@@ -662,20 +671,20 @@ export default function ProfileMeScreen() {
 
               <ActionRow
                 icon="image-outline"
-                title="Doi anh bia"
+                title="Đổi ảnh bìa"
                 subtitle={
-                  uploading === "cover" ? "Dang upload..." : "Chon anh va upload"
+                  uploading === "cover" ? "Đang upload..." : "Chọn ảnh và upload"
                 }
                 onPress={() => {
                   setUploadMenuOpen(false);
-                  Alert.alert("Anh bia", "Chon nguon anh", [
-                    { text: "Huy", style: "cancel" },
+                  Alert.alert("Ảnh bìa", "Chonnj nguồn ảnh", [
+                    { text: "Hủy", style: "cancel" },
                     {
-                      text: "Chup anh",
+                      text: "Chụp ảnh",
                       onPress: () => doUpload("cover", "camera"),
                     },
                     {
-                      text: "Thu vien",
+                      text: "Thư viện",
                       onPress: () => doUpload("cover", "library"),
                     },
                   ]);
@@ -698,7 +707,7 @@ export default function ProfileMeScreen() {
                       fontWeight: "800",
                     }}
                   >
-                    Luu y: Ban can bam Sua truoc khi doi anh.
+                    Lưu ý bạn cần bấm sửa trước khi chụp ảnh.
                   </Text>
                 </View>
               ) : null}
@@ -815,9 +824,9 @@ function SolidButton({
         {
           minHeight: 44,
           borderRadius: 12,
-          backgroundColor: "#1877F2",
+          backgroundColor: SKY,
           borderWidth: 1,
-          borderColor: "#2563EB",
+          borderColor: SKY_DARK,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
@@ -914,14 +923,14 @@ function SectionTitle({ icon, title }: { icon: any; title: string }) {
           width: 34,
           height: 34,
           borderRadius: 12,
-          backgroundColor: "#DBEAFE",
+          backgroundColor: SKY_SOFT,
           alignItems: "center",
           justifyContent: "center",
           borderWidth: 1,
           borderColor: "#E5E7EB",
         }}
       >
-        <Ionicons name={icon} size={18} color="#1D4ED8" />
+        <Ionicons name={icon} size={18} color={SKY_DARK} />
       </View>
       <Text style={{ fontSize: 15, fontWeight: "900", color: "#111827" }}>
         {title}
@@ -1083,9 +1092,9 @@ function ModalActionButton({
 }) {
   const ui =
     tone === "primary"
-      ? { bg: "#1877F2", bd: "#1D4ED8", fg: "#FFF" }
+      ? { bg: SKY, bd: SKY_DARK, fg: "#FFF" }
       : tone === "subtle"
-        ? { bg: "#EFF6FF", bd: "#BFDBFE", fg: "#1E40AF" }
+        ? { bg: SKY_SOFT, bd: SKY_BORDER, fg: SKY_DARK }
         : { bg: "#FFF", bd: "#D1D5DB", fg: "#111827" };
 
   return (
@@ -1147,12 +1156,12 @@ function ActionRow({
           width: 40,
           height: 40,
           borderRadius: 14,
-          backgroundColor: "#DBEAFE",
+        backgroundColor: SKY_SOFT,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Ionicons name={icon} size={20} color="#1D4ED8" />
+        <Ionicons name={icon} size={20} color={SKY_DARK} />
       </View>
 
       <View style={{ flex: 1 }}>

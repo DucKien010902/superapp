@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -12,8 +11,13 @@ import {
   View,
 } from "react-native";
 
+import KeyboardSafeModalFrame from "@/components/contact/KeyboardSafeModalFrame";
 import { createGroupPost, fetchGroupPosts, updateGroup, updateGroupPost } from "@/lib/contact/api";
 import type { Group, GroupPost } from "@/lib/contact/types";
+
+const SKY = "#0284C7";
+const SKY_DARK = "#0369A1";
+const SKY_SOFT = "#E0F2FE";
 
 function formatDate(v?: string) {
   if (!v) return "-";
@@ -63,14 +67,14 @@ function SectionTitle({
             width: 34,
             height: 34,
             borderRadius: 12,
-            backgroundColor: "#DBEAFE",
+            backgroundColor: SKY_SOFT,
             alignItems: "center",
             justifyContent: "center",
             borderWidth: 1,
             borderColor: "#E5E7EB",
           }}
         >
-          <Ionicons name={icon} size={18} color="#1D4ED8" />
+          <Ionicons name={icon} size={18} color={SKY_DARK} />
         </View>
         <Text style={{ fontSize: 15, fontWeight: "900", color: "#111827" }}>{title}</Text>
       </View>
@@ -112,19 +116,15 @@ function InputModal({
   onSave: () => void;
 }) {
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center" }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 14 : 0}
-          style={{ width: "95%", height: "50%" }}
-        >
+    <KeyboardSafeModalFrame visible={open} onRequestClose={onClose} padding={10}>
           <View
             style={{
-              flex: 1,
+              width: "100%",
+              maxWidth: 520,
+              maxHeight: "80%",
               backgroundColor: "white",
               borderRadius: 24,
-              paddingBottom: 12,
+              overflow: "hidden",
             }}
           >
             <View style={{ alignItems: "center", paddingTop: 10 }}>
@@ -144,7 +144,11 @@ function InputModal({
                 <Ionicons name="close" size={22} color="#111827" />
               </Pressable>
             </View>
-            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16 }}>
+            <ScrollView
+              style={{ flexShrink: 1 }}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
+            >
               <TextInput
                 value={value}
                 onChangeText={onChange}
@@ -152,7 +156,7 @@ function InputModal({
                 placeholder="Nhập nội dung..."
                 placeholderTextColor="#9CA3AF"
                 style={{
-                  minHeight: 130,
+                  minHeight: 260,
                   borderRadius: 14,
                   backgroundColor: "#F9FAFB",
                   borderWidth: 1,
@@ -164,7 +168,16 @@ function InputModal({
                 }}
               />
             </ScrollView>
-            <View style={{ paddingHorizontal: 16, flexDirection: "row", justifyContent: "flex-end", gap: 10 }}>
+            <View
+              style={{
+                padding: 16,
+                borderTopWidth: 1,
+                borderTopColor: "#E5E7EB",
+                flexDirection: "row",
+                justifyContent: "flex-end",
+                gap: 10,
+              }}
+            >
               <Pressable
                 onPress={onClose}
                 style={{
@@ -183,16 +196,16 @@ function InputModal({
                   paddingVertical: 10,
                   paddingHorizontal: 14,
                   borderRadius: 14,
-                  backgroundColor: busy ? "#E5E7EB" : "#1877F2",
+                  backgroundColor: busy ? "#E5E7EB" : SKY,
+                  borderWidth: 1,
+                  borderColor: busy ? "#E5E7EB" : SKY_DARK,
                 }}
               >
                 <Text style={{ fontWeight: "900", color: "white" }}>{busy ? "Đang lưu..." : "Lưu"}</Text>
               </Pressable>
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
+    </KeyboardSafeModalFrame>
   );
 }
 
@@ -220,18 +233,15 @@ function EditGroupModal({
   onSave: () => void;
 }) {
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center" }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 14 : 0}
-          style={{ width: "95%", height: "50%" }}
-        >
+    <KeyboardSafeModalFrame visible={open} onRequestClose={onClose} padding={10}>
           <View
             style={{
-              flex: 1,
+              width: "100%",
+              maxWidth: 520,
+              maxHeight: "80%",
               backgroundColor: "white",
               borderRadius: 24,
+              overflow: "hidden",
             }}
           >
             <View style={{ alignItems: "center", paddingTop: 10 }}>
@@ -251,7 +261,11 @@ function EditGroupModal({
                 <Ionicons name="close" size={22} color="#111827" />
               </Pressable>
             </View>
-            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16 }}>
+            <ScrollView
+              style={{ flexShrink: 1 }}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
+            >
               <Text style={{ fontSize: 12, color: "#6B7280" }}>Tên nhóm</Text>
               <TextInput
                 value={name}
@@ -260,7 +274,7 @@ function EditGroupModal({
                 placeholderTextColor="#9CA3AF"
                 style={{
                   marginTop: 8,
-                  height: 42,
+                  height: 52,
                   borderRadius: 14,
                   backgroundColor: "#F9FAFB",
                   paddingHorizontal: 12,
@@ -279,7 +293,7 @@ function EditGroupModal({
                 multiline
                 style={{
                   marginTop: 8,
-                  minHeight: 100,
+                  minHeight: 240,
                   borderRadius: 14,
                   backgroundColor: "#F9FAFB",
                   paddingHorizontal: 12,
@@ -298,14 +312,14 @@ function EditGroupModal({
                     paddingVertical: 8,
                     paddingHorizontal: 12,
                     borderRadius: 999,
-                    backgroundColor: visibility === "private" ? "#DBEAFE" : "#F3F4F6",
+                    backgroundColor: visibility === "private" ? SKY_SOFT : "#F3F4F6",
                   }}
                 >
                   <Text
                     style={{
                       fontSize: 12,
                       fontWeight: "900",
-                      color: visibility === "private" ? "#1D4ED8" : "#374151",
+                      color: visibility === "private" ? SKY_DARK : "#374151",
                     }}
                   >
                     Private
@@ -317,14 +331,14 @@ function EditGroupModal({
                     paddingVertical: 8,
                     paddingHorizontal: 12,
                     borderRadius: 999,
-                    backgroundColor: visibility === "public" ? "#DBEAFE" : "#F3F4F6",
+                    backgroundColor: visibility === "public" ? SKY_SOFT : "#F3F4F6",
                   }}
                 >
                   <Text
                     style={{
                       fontSize: 12,
                       fontWeight: "900",
-                      color: visibility === "public" ? "#1D4ED8" : "#374151",
+                      color: visibility === "public" ? SKY_DARK : "#374151",
                     }}
                   >
                     Public
@@ -332,7 +346,16 @@ function EditGroupModal({
                 </Pressable>
               </View>
             </ScrollView>
-            <View style={{ padding: 16, flexDirection: "row", justifyContent: "flex-end", gap: 10 }}>
+            <View
+              style={{
+                padding: 16,
+                borderTopWidth: 1,
+                borderTopColor: "#E5E7EB",
+                flexDirection: "row",
+                justifyContent: "flex-end",
+                gap: 10,
+              }}
+            >
               <Pressable
                 onPress={onClose}
                 style={{
@@ -351,16 +374,16 @@ function EditGroupModal({
                   paddingVertical: 10,
                   paddingHorizontal: 14,
                   borderRadius: 14,
-                  backgroundColor: busy ? "#E5E7EB" : "#1877F2",
+                  backgroundColor: busy ? "#E5E7EB" : SKY,
+                  borderWidth: 1,
+                  borderColor: busy ? "#E5E7EB" : SKY_DARK,
                 }}
               >
                 <Text style={{ fontWeight: "900", color: "white" }}>{busy ? "Đang lưu..." : "Lưu"}</Text>
               </Pressable>
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
+    </KeyboardSafeModalFrame>
   );
 }
 
@@ -370,12 +393,14 @@ export default function GroupAboutTab({
   group,
   isOwner,
   onUpdated,
+  onModalOverlayChange,
 }: {
   token: string;
   groupId: string;
   group: Group;
   isOwner: boolean;
   onUpdated?: () => Promise<void> | void;
+  onModalOverlayChange?: (node: React.ReactNode | null) => void;
 }) {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -426,7 +451,7 @@ export default function GroupAboutTab({
     );
   }, [posts]);
 
-  const onSaveGroup = async () => {
+  const onSaveGroup = useCallback(async () => {
     const name = nameDraft.trim();
     if (!name) return Alert.alert("Thiếu tên", "Tên nhóm không được rỗng.");
     setBusyGroupSave(true);
@@ -443,9 +468,9 @@ export default function GroupAboutTab({
     } finally {
       setBusyGroupSave(false);
     }
-  };
+  }, [descDraft, groupId, nameDraft, onUpdated, token, visDraft]);
 
-  const onCreatePost = async () => {
+  const onCreatePost = useCallback(async () => {
     const content = createText.trim();
     if (!content) return Alert.alert("Thiếu nội dung", "Nhập nội dung bài viết.");
 
@@ -461,9 +486,9 @@ export default function GroupAboutTab({
     } finally {
       setBusyCreate(false);
     }
-  };
+  }, [createText, groupId, onUpdated, reloadPosts, token]);
 
-  const onSaveEditPost = async () => {
+  const onSaveEditPost = useCallback(async () => {
     if (!editingPostId) return;
     const content = editText.trim();
     if (!content) return Alert.alert("Thiếu nội dung", "Nhập nội dung bài viết.");
@@ -481,7 +506,74 @@ export default function GroupAboutTab({
     } finally {
       setBusyEdit(false);
     }
-  };
+  }, [editText, editingPostId, groupId, onUpdated, reloadPosts, token]);
+
+  const modalOverlay = (
+    <>
+      <EditGroupModal
+        open={groupModalOpen}
+        busy={busyGroupSave}
+        name={nameDraft}
+        description={descDraft}
+        visibility={visDraft}
+        onClose={() => setGroupModalOpen(false)}
+        onChangeName={setNameDraft}
+        onChangeDescription={setDescDraft}
+        onChangeVisibility={setVisDraft}
+        onSave={onSaveGroup}
+      />
+
+      <InputModal
+        title="Tạo bài viết"
+        open={createOpen}
+        busy={busyCreate}
+        value={createText}
+        onChange={setCreateText}
+        onClose={() => {
+          setCreateOpen(false);
+          setCreateText("");
+        }}
+        onSave={onCreatePost}
+      />
+
+      <InputModal
+        title="Sửa bài viết"
+        open={editOpen}
+        busy={busyEdit}
+        value={editText}
+        onChange={setEditText}
+        onClose={() => {
+          setEditOpen(false);
+          setEditingPostId(null);
+          setEditText("");
+        }}
+        onSave={onSaveEditPost}
+      />
+    </>
+  );
+
+  useEffect(() => {
+    if (!onModalOverlayChange) return;
+
+    onModalOverlayChange(modalOverlay);
+    return () => onModalOverlayChange(null);
+  }, [
+    busyCreate,
+    busyEdit,
+    busyGroupSave,
+    createOpen,
+    createText,
+    descDraft,
+    editOpen,
+    editText,
+    groupModalOpen,
+    nameDraft,
+    onCreatePost,
+    onModalOverlayChange,
+    onSaveEditPost,
+    onSaveGroup,
+    visDraft,
+  ]);
 
   return (
     <KeyboardAvoidingView
@@ -514,7 +606,7 @@ export default function GroupAboutTab({
                   width: 40,
                   height: 40,
                   borderRadius: 14,
-                  backgroundColor: "#3b68c8",
+                  backgroundColor: SKY,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
@@ -537,7 +629,7 @@ export default function GroupAboutTab({
                   width: 38,
                   height: 38,
                   borderRadius: 14,
-                  backgroundColor: "#1340a1",
+                  backgroundColor: SKY,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
@@ -558,7 +650,7 @@ export default function GroupAboutTab({
                   marginTop: 10,
                   paddingVertical: 10,
                   borderRadius: 14,
-                  backgroundColor: "#111827",
+                  backgroundColor: SKY,
                   alignItems: "center",
                 }}
               >
@@ -611,7 +703,7 @@ export default function GroupAboutTab({
                               width: 34,
                               height: 34,
                               borderRadius: 17,
-                              backgroundColor: "#1340a1",
+                              backgroundColor: SKY,
                               alignItems: "center",
                               justifyContent: "center",
                             }}
@@ -632,45 +724,7 @@ export default function GroupAboutTab({
         ) : null}
       </View>
 
-      <EditGroupModal
-        open={groupModalOpen}
-        busy={busyGroupSave}
-        name={nameDraft}
-        description={descDraft}
-        visibility={visDraft}
-        onClose={() => setGroupModalOpen(false)}
-        onChangeName={setNameDraft}
-        onChangeDescription={setDescDraft}
-        onChangeVisibility={setVisDraft}
-        onSave={onSaveGroup}
-      />
-
-      <InputModal
-        title="Tạo bài viết"
-        open={createOpen}
-        busy={busyCreate}
-        value={createText}
-        onChange={setCreateText}
-        onClose={() => {
-          setCreateOpen(false);
-          setCreateText("");
-        }}
-        onSave={onCreatePost}
-      />
-
-      <InputModal
-        title="Sửa bài viết"
-        open={editOpen}
-        busy={busyEdit}
-        value={editText}
-        onChange={setEditText}
-        onClose={() => {
-          setEditOpen(false);
-          setEditingPostId(null);
-          setEditText("");
-        }}
-        onSave={onSaveEditPost}
-      />
+      {onModalOverlayChange ? null : modalOverlay}
     </KeyboardAvoidingView>
   );
 }
