@@ -11,6 +11,8 @@ import groups2Routes from "./routes/groups.routes.js";
 import messagesRoutes from "./routes/messages.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import versionRoutes from "./routes/version.routes.js";
+import mediaRoutes from "./routes/media.routes.js";
+import { initMinioBucket } from "./minio.js";
 
 import { requireAuth } from "./middlewares/auth.middleware.js";
 import { browserGate } from "./middlewares/browserGate.middleware.js";
@@ -54,18 +56,20 @@ app.use("/api/groups", requireAuth, groups2Routes);
 app.use("/api/messages", requireAuth, messagesRoutes);
 app.use("/api/admin", requireAuth, adminRoutes);
 app.use('/api/version',requireAuth, versionRoutes)
+app.use("/api/media", requireAuth, mediaRoutes);
 
 // error handler
 app.use((err, req, res, next) => {
   console.error("❌", err);
-  res.status(500).json({ message: err?.message || "Internal Server Error" });
+  res.status(err?.statusCode || 500).json({ message: err?.message || "Internal Server Error" });
 });
 
 const PORT = process.env.PORT || 4000;
 const HOST = '0.0.0.0'; // QUAN TRỌNG: Lắng nghe trên mọi interface mạng
 
 connectDB(process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
+    await initMinioBucket();
     // Thêm tham số HOST vào giữa PORT và callback
     app.listen(PORT, HOST, () =>
       console.log(`✅ API listening on http://${HOST}:${PORT}`)

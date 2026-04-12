@@ -4,10 +4,17 @@ services:
     build: .
     container_name: superapp-backend
     ports:
-      - "5001:5001"
+      - "${PORT:-5001}:${PORT:-5001}"
     volumes:
       - .:/app            # CỰC KỲ QUAN TRỌNG: Giúp sửa code tự nhảy vào Docker
       - /app/node_modules # Giữ lại node_modules bên trong Docker để không bị lỗi
     environment:
-      - PORT=5001
-      - MONGO_URI=mongodb://host.docker.internal:27017/superapp # Link tới MongoDB của bạn
+      - PORT=${PORT:-5001}
+      - MONGO_URI=${MONGO_URI:-mongodb://host.docker.internal:27017/superapp}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio-server}
+      - MINIO_PORT=${MINIO_PORT:-9000}
+      - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET=${MINIO_BUCKET:-superapp}
+      - URL_MINIO=${URL_MINIO:-https://file.gennovax.vn}

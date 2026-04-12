@@ -19,13 +19,27 @@ function normPhone(x) {
 }
 
 function pickUserPublic(u) {
+  const mapImage = (item) => ({
+    id: String(item?._id || item?.id || ""),
+    url: item?.url || "",
+    caption: item?.caption || "",
+    createdAt: item?.createdAt || null,
+  });
+  const mapFile = (item) => ({
+    id: String(item?._id || item?.id || ""),
+    name: item?.name || "",
+    url: item?.url || "",
+    mimeType: item?.mimeType || "",
+    size: Number(item?.size || 0),
+    createdAt: item?.createdAt || null,
+  });
   return {
     id: String(u._id),
     role: u.role,
     profile: u.profile,
     evaluation: u.evaluation,
-    images: u.images || [],
-    files: u.files || [],
+    images: (u.images || []).map(mapImage),
+    files: (u.files || []).map(mapFile),
     lastViewedVersion: u.lastViewedVersion,
     phone: u.phone,
     createdAt: u.createdAt,
@@ -204,17 +218,7 @@ router.patch("/users/:id", requireAdmin, async (req, res, next) => {
     if (!updated) return res.status(404).json({ message: "User not found" });
 
     return res.json({
-      user: {
-        id: String(updated._id),
-        email: updated.email || "",
-        role: updated.role,
-        profile: updated.profile,
-        evaluation: updated.evaluation,
-        images: updated.images || [],
-        files: updated.files || [],
-        createdAt: updated.createdAt,
-        updatedAt: updated.updatedAt,
-      },
+      user: { ...pickUserPublic(updated), email: updated.email || "", updatedAt: updated.updatedAt },
     });
   } catch (err) {
     next(err);
