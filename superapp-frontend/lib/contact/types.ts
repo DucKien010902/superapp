@@ -38,13 +38,14 @@ export type UserPublic = {
     avatarUrl?: string;
     coverUrl?: string;
     bio?: string;
+    note?: string;
     gender?: string;
     birthday?: string;
     phone?: string;
     location?: { city?: string; country?: string };
     work?: string;
     education?: string;
-    links?: Array<{ label: string; url: string }>;
+    links?: { label: string; url: string }[];
   };
   evaluation?: UserEvaluation;
   images?: UserImage[];
@@ -64,6 +65,7 @@ export type Friend = {
   phone?: string;
   avatar?: string;
   isOnline?: boolean;
+  secondaryLines?: string[];
 };
 
 export type FriendRequestItem = {
@@ -98,6 +100,29 @@ export type GroupPost = {
   updatedAt: string;
 };
 
+export type GroupRelationshipTreeSummary = {
+  id: string;
+  groupId: string;
+  name: string;
+  nodeCount: number;
+  rootCount: number;
+  createdBy: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+export type GroupRelationshipTreeNode = {
+  id: string;
+  userId: string;
+  parentNodeId?: string;
+  orderIndex: number;
+  user?: UserPublic | null;
+};
+
+export type GroupRelationshipTree = GroupRelationshipTreeSummary & {
+  nodes: GroupRelationshipTreeNode[];
+};
+
 export type Group = {
   id: string;
   name: string;
@@ -106,6 +131,8 @@ export type Group = {
   avatarUrl?: string;
   coverUrl?: string;
   ownerId: string;
+  parentGroupId?: string;
+  childCount?: number;
   isHidden?: boolean;
   memberIds: string[];
   myRole: "owner" | "admin" | "member";
@@ -114,4 +141,15 @@ export type Group = {
   posts?: GroupPost[];
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type NewsArticle = {
+  id: string;
+  sourceUrl: string;
+  imageUrl: string;
+  title: string;
+  summary: string;
+  publishedLabel: string;
+  publishedAt?: string | null;
+  lastSyncedAt?: string | null;
 };

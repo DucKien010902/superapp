@@ -1,136 +1,286 @@
 import ContactRow from "@/components/contact/ContactRow";
 import CreateFriendModal from "@/components/contact/CreateFriendModal";
+import KeyboardSafeModalFrame from "@/components/contact/KeyboardSafeModalFrame";
 import SearchBar from "@/components/contact/SearchBar";
 import Screen from "@/components/Screen";
 import { useAuth } from "@/lib/auth";
-import { fetchFriends, searchUsers } from "@/lib/contact/api";
+import { searchUsers } from "@/lib/contact/api";
 import type { Friend, UserPublic } from "@/lib/contact/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
-
-type Row =
-  | { kind: "friend"; friend: Friend }
-  | { kind: "user"; user: UserPublic };
+import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 
 const SKY = "#0284C7";
 const SKY_DARK = "#0369A1";
-const FIRST_PAGE = 5;
-const MORE_PAGE = 10; // tối đa thêm 5 nữa => tổng 10
+const PAGE_SIZE = 6;
+
+const FIELD_OPTIONS = [
+  { key: "phone", label: "Số điện thoại" },
+  { key: "username", label: "Username" },
+  { key: "bio", label: "Tiểu sử" },
+  { key: "note", label: "Ghi chú" },
+  { key: "gender", label: "Giới tính" },
+  { key: "birthday", label: "Ngày sinh" },
+  { key: "work", label: "Công việc" },
+  { key: "education", label: "Học vấn" },
+  { key: "city", label: "Thành phố" },
+  { key: "country", label: "Quốc gia" },
+] as const;
+
+type SecondaryFieldKey = (typeof FIELD_OPTIONS)[number]["key"];
+
+function pickProfileField(user: UserPublic, field: SecondaryFieldKey) {
+  const profile = user.profile || {};
+  if (field === "phone") return profile.phone || "";
+  if (field === "username") return profile.username || "";
+  if (field === "bio") return profile.bio || "";
+  if (field === "note") return profile.note || "";
+  if (field === "gender") return profile.gender || "";
+  if (field === "birthday") return profile.birthday || "";
+  if (field === "work") return profile.work || "";
+  if (field === "education") return profile.education || "";
+  if (field === "city") return profile.location?.city || "";
+  if (field === "country") return profile.location?.country || "";
+  return "";
+}
+
+function toContactItem(user: UserPublic, selectedFields: SecondaryFieldKey[]): Friend {
+  const secondaryLines = selectedFields
+    .map((field) => pickProfileField(user, field))
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  return {
+    id: user.id,
+    name: user.profile?.displayName || "-",
+    phone: user.profile?.phone || "",
+    avatar: user.profile?.avatarUrl || "",
+    secondaryLines,
+  };
+}
+
+function FieldPickerModal({
+  open,
+  selectedFields,
+  onToggle,
+  onClose,
+}: {
+  open: boolean;
+  selectedFields: SecondaryFieldKey[];
+  onToggle: (field: SecondaryFieldKey) => void;
+  onClose: () => void;
+}) {
+  return (
+    <KeyboardSafeModalFrame visible={open} onRequestClose={onClose}>
+      <View
+        style={{
+          width: "100%",
+          maxWidth: 420,
+          maxHeight: "70%",
+          borderRadius: 22,
+          backgroundColor: "white",
+          padding: 16,
+          borderWidth: 1,
+          borderColor: "rgba(229,231,235,0.9)",
+          shadowColor: "#000",
+          shadowOpacity: 0.15,
+          shadowRadius: 18,
+          shadowOffset: { width: 0, height: 10 },
+          elevation: 10,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flex: 1, paddingRight: 12 }}>
+            <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
+              Trường hiển thị phụ
+            </Text>
+            <Text style={{ marginTop: 4, fontSize: 12, color: "#6B7280" }}>
+              Chọn các trường trong profile và SĐT để ghim dưới tên.
+            </Text>
+          </View>
+          <Pressable
+            onPress={onClose}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: "#F3F4F6",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="close" size={18} color="#111827" />
+          </Pressable>
+        </View>
+
+        <ScrollView
+          style={{ marginTop: 14 }}
+          contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
+          showsVerticalScrollIndicator
+          keyboardShouldPersistTaps="handled"
+        >
+          {FIELD_OPTIONS.map((option) => {
+            const active = selectedFields.includes(option.key);
+            return (
+              <Pressable
+                key={option.key}
+                onPress={() => onToggle(option.key)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: active ? SKY_DARK : "#E5E7EB",
+                  backgroundColor: active ? "#E0F2FE" : "#F9FAFB",
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "800", color: "#111827" }}>
+                  {option.label}
+                </Text>
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: active ? SKY : "transparent",
+                    borderWidth: active ? 0 : 1,
+                    borderColor: "#CBD5E1",
+                  }}
+                >
+                  {active ? <Ionicons name="checkmark" size={14} color="white" /> : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    </KeyboardSafeModalFrame>
+  );
+}
 
 export default function ContactsScreen() {
   const { token, user } = useAuth();
   const router = useRouter();
 
   const [q, setQ] = useState("");
-  const [friends, setFriends] = useState<Friend[]>([]);
   const [users, setUsers] = useState<UserPublic[]>([]);
-
-  const [friendsLoading, setFriendsLoading] = useState(true);
-  const [searchLoading, setSearchLoading] = useState(false);
-
-  const [searchLimit, setSearchLimit] = useState(FIRST_PAGE); // 5 -> 10
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [fieldPickerOpen, setFieldPickerOpen] = useState(false);
+  const [selectedFields, setSelectedFields] = useState<SecondaryFieldKey[]>([
+    "phone",
+    "work",
+    "note",
+  ]);
   const lastReqId = useRef(0);
 
-  const [createOpen, setCreateOpen] = useState(false);
-
-  const isSearching = !!q.trim();
   const isAdmin = String(user?.role || "") === "admin";
 
-  const loadFriends = useCallback(async () => {
-    if (!token) return;
-    try {
-      setFriendsLoading(true);
-      const items = await fetchFriends(token);
-      setFriends(items);
-    } finally {
-      setFriendsLoading(false);
-    }
-  }, [token]);
+  const loadUsers = useCallback(
+    async (mode: "replace" | "append", skipOverride = 0) => {
+      if (!token) return;
 
-  // load friends
-  useEffect(() => {
-    if (!token) return;
-    loadFriends();
-  }, [token, loadFriends]);
+      const reqId = ++lastReqId.current;
+      const nextSkip = mode === "append" ? skipOverride : 0;
 
-  // reset limit khi đổi query
-  useEffect(() => {
-    if (!isSearching) {
-      setUsers([]);
-      setSearchLimit(FIRST_PAGE);
-      return;
-    }
-    setSearchLimit(FIRST_PAGE);
-  }, [isSearching, q]);
+      if (mode === "append") setLoadingMore(true);
+      else setLoading(true);
 
-  // search all users (debounce)
-  useEffect(() => {
-    if (!token) return;
-
-    const s = q.trim();
-    if (!s) {
-      setUsers([]);
-      return;
-    }
-
-    const reqId = ++lastReqId.current;
-
-    const t = setTimeout(async () => {
       try {
-        setSearchLoading(true);
-        const items = await searchUsers(token, s, {
-          limit: searchLimit,
-          skip: 0,
+        const items = await searchUsers(token, q.trim(), {
+          limit: PAGE_SIZE,
+          skip: nextSkip,
         });
 
-        // tránh race condition khi gõ nhanh
         if (reqId !== lastReqId.current) return;
 
-        setUsers(items);
+        setUsers((prev) => (mode === "append" ? [...prev, ...items] : items));
+        setHasMore(items.length === PAGE_SIZE);
       } catch {
         if (reqId !== lastReqId.current) return;
-        setUsers([]);
+        if (mode === "replace") setUsers([]);
+        setHasMore(false);
       } finally {
-        if (reqId === lastReqId.current) setSearchLoading(false);
+        if (reqId === lastReqId.current) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
-    }, 250);
+    },
+    [q, token]
+  );
+
+  useEffect(() => {
+    if (!token) return;
+
+    const t = setTimeout(() => {
+      loadUsers("replace");
+    }, q.trim() ? 250 : 0);
 
     return () => clearTimeout(t);
-  }, [q, token, searchLimit]);
+  }, [q, token, loadUsers]);
 
-  const rows: Row[] = useMemo(() => {
-    if (!isSearching)
-      return friends.map((f) => ({ kind: "friend", friend: f }));
-    return users.map((u) => ({ kind: "user", user: u }));
-  }, [isSearching, friends, users]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      loadUsers("replace");
+    }, [loadUsers, token])
+  );
 
-  // logic See more
-  const canSeeMore =
-    isSearching &&
-    !searchLoading &&
-    searchLimit === FIRST_PAGE &&
-    users.length === FIRST_PAGE; // chỉ hiện khi đủ 5 (ngầm hiểu còn kết quả)
+  const rows = useMemo(
+    () => users.map((item) => toContactItem(item, selectedFields)),
+    [selectedFields, users]
+  );
+
+  const headerCountText = (() => {
+    if (loading && rows.length === 0) return "Đang tải...";
+    return `${rows.length} mục`;
+  })();
+
+  const selectedFieldsText =
+    selectedFields.length === 0
+      ? "Không hiển thị dòng phụ"
+      : selectedFields
+          .map((field) => FIELD_OPTIONS.find((item) => item.key === field)?.label || field)
+          .join(" • ");
+
+  const toggleField = (field: SecondaryFieldKey) => {
+    setSelectedFields((prev) =>
+      prev.includes(field)
+        ? prev.filter((item) => item !== field)
+        : [...prev, field]
+    );
+  };
 
   const Footer = () => {
-    if (!isSearching) return null;
-
-    // Loading nhỏ ở footer
-    if (searchLoading) {
+    if (loadingMore) {
       return (
         <View style={{ paddingVertical: 14, alignItems: "center" }}>
-          <Text style={{ color: "#6B7280" }}>Đang tìm...</Text>
+          <Text style={{ color: "#6B7280" }}>Đang tải thêm...</Text>
         </View>
       );
     }
 
-    if (!canSeeMore) return <View style={{ height: 24 }} />;
+    if (!hasMore) return <View style={{ height: 24 }} />;
 
     return (
       <View style={{ paddingTop: 10, paddingBottom: 24, alignItems: "center" }}>
         <Pressable
-          onPress={() => setSearchLimit(MORE_PAGE)} // chỉ nhảy 5 -> 10
+          onPress={() => loadUsers("append", users.length)}
           style={{
             paddingHorizontal: 14,
             paddingVertical: 10,
@@ -140,61 +290,66 @@ export default function ContactsScreen() {
             borderColor: SKY_DARK,
           }}
         >
-          <Text style={{ color: "white", fontWeight: "800" }}>See more</Text>
+          <Text style={{ color: "white", fontWeight: "800" }}>Xem thêm</Text>
         </Pressable>
-        <Text style={{ marginTop: 6, fontSize: 12, color: "#6B7280" }}>
-          Tối đa thêm 5 kết quả nữa
-        </Text>
       </View>
     );
   };
 
-  const headerCountText = (() => {
-    if (!isSearching)
-      return friendsLoading ? "Đang tải..." : `${rows.length} mục`;
-    if (searchLoading && users.length === 0) return "Đang tìm...";
-    // đang search: hiển thị số đang có / giới hạn (5 hoặc 10)
-    return `${rows.length} / ${searchLimit} kết quả`;
-  })();
-
   return (
     <Screen top={8} bottom={0}>
       <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
-        <SearchBar
-          value={q}
-          onChange={setQ}
-          placeholder="Search name / phone"
-        />
+        <SearchBar value={q} onChange={setQ} placeholder="Search name / phone" />
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
-        {/* Header row: title + (admin) */}
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <Text style={{ fontSize: 16, fontWeight: "800", color: "#111827" }}>
-            {isSearching ? "Kết quả " : "Bạn bè"}
+            {q.trim() ? "Kết quả" : "Danh sách người dùng"}
           </Text>
 
-          {/* ✅ chỉ admin và chỉ khi đang ở tab Bạn bè (không search) */}
-          {isAdmin && !isSearching ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Pressable
-              onPress={() => setCreateOpen(true)}
+              onPress={() => setFieldPickerOpen(true)}
               style={{
                 width: 36,
                 height: 36,
                 borderRadius: 18,
-                backgroundColor: SKY,
+                backgroundColor: "#F3F4F6",
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Ionicons name="add" size={20} color="white" />
+              <Ionicons name="options-outline" size={18} color="#111827" />
             </Pressable>
-          ) : null}
+
+            {isAdmin ? (
+              <Pressable
+                onPress={() => setCreateOpen(true)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: SKY,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="add" size={20} color="white" />
+              </Pressable>
+            ) : null}
+          </View>
         </View>
 
-        <Text style={{ marginTop: 4, fontSize: 12, color: "#6B7280" }}>
-          {headerCountText}
-        </Text>
+        
       </View>
 
       <FlatList
@@ -204,47 +359,38 @@ export default function ContactsScreen() {
           paddingBottom: 120,
         }}
         data={rows}
-        keyExtractor={(it) =>
-          it.kind === "friend" ? it.friend.id : it.user.id
-        }
-        renderItem={({ item }) => {
-          if (item.kind === "friend") {
-            return (
-              <ContactRow
-                item={item.friend}
-                onPress={() => router.push(`/contact/user/${item.friend.id}`)}
-              />
-            );
-          }
-          const u = item.user;
-          return (
-            <ContactRow
-              item={{
-                id: u.id,
-                name: u.profile?.displayName || "—",
-                phone: u.profile?.phone || "",
-                avatar: u.profile?.avatarUrl || "",
-              }}
-              onPress={() => router.push(`/contact/user/${u.id}`)}
-            />
-          );
-        }}
-        ItemSeparatorComponent={() => (
-          <View style={{ height: 1, backgroundColor: "#F3F4F6" }} />
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ContactRow item={item} onPress={() => router.push(`/contact/user/${item.id}`)} />
         )}
+        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: "#F3F4F6" }} />}
         ListFooterComponent={Footer}
+        ListEmptyComponent={
+          !loading ? (
+            <View style={{ paddingVertical: 24, alignItems: "center" }}>
+              <Text style={{ fontSize: 13, color: "#6B7280" }}>
+                {q.trim() ? "Không có user phù hợp." : "Chưa có user nào."}
+              </Text>
+            </View>
+          ) : null
+        }
       />
 
-      {/* ✅ Modal tạo bạn mới (admin) */}
+      <FieldPickerModal
+        open={fieldPickerOpen}
+        selectedFields={selectedFields}
+        onToggle={toggleField}
+        onClose={() => setFieldPickerOpen(false)}
+      />
+
       {token ? (
         <CreateFriendModal
           open={createOpen}
           onClose={() => setCreateOpen(false)}
           token={token}
           onCreated={() => {
-            // tạo xong: refresh list friends, reset search nếu muốn
-            setQ("");
-            loadFriends();
+            if (q.trim()) setQ("");
+            else loadUsers("replace");
           }}
         />
       ) : null}

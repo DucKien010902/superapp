@@ -44,8 +44,8 @@ const TONE = StyleSheet.create({
     borderColor: "rgba(124, 92, 255, 0.35)",
   },
   sky: {
-    backgroundColor: "rgb(22, 167, 203)",
-    borderColor: "rgba(124, 92, 255, 0.35)",
+    backgroundColor: "rgb(113, 213, 238)",
+    borderColor: "rgb(81, 183, 209)",
   },
   blue: {
     backgroundColor: "rgba(59, 130, 246, 1)",
@@ -73,10 +73,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   logo: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.96)",
+    // backgroundColor: "rgba(255,255,255,0.96)",
   },
   label: { color: "rgba(255,255,255,0.9)", fontSize: 12, fontWeight: "700" },
 });

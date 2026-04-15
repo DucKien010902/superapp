@@ -3,8 +3,8 @@ import GroupRow from "@/components/contact/GroupRow";
 import KeyboardSafeModalFrame from "@/components/contact/KeyboardSafeModalFrame";
 import SearchBar from "@/components/contact/SearchBar";
 import { useAuth } from "@/lib/auth";
-import { createGroup, fetchFriends, fetchGroups } from "@/lib/contact/api";
-import type { Friend, Group } from "@/lib/contact/types";
+import { createGroup, fetchGroups } from "@/lib/contact/api";
+import type { Group } from "@/lib/contact/types";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -23,11 +23,9 @@ export default function GroupsScreen() {
   const { token } = useAuth();
 
   const [q, setQ] = useState("");
-  const [friends, setFriends] = useState<Friend[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // create group modal
   const [openCreate, setOpenCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -37,11 +35,7 @@ export default function GroupsScreen() {
     if (!token) return;
     setLoading(true);
     try {
-      const [fs, gs] = await Promise.all([
-        fetchFriends(token),
-        fetchGroups(token),
-      ]);
-      setFriends(fs);
+      const gs = await fetchGroups(token);
       setGroups(gs);
     } finally {
       setLoading(false);
@@ -59,15 +53,7 @@ export default function GroupsScreen() {
     return groups.filter((g) => (g.name || "").toLowerCase().includes(s));
   }, [q, groups]);
 
-  // ✅ đếm đúng tổng member (backend trả memberIds của group)
   const memberCount = (g: Group) => g.memberIds?.length ?? 0;
-
-  // NOTE: isHidden hiện chỉ là “local UI”, chưa lưu server
-  const toggleHidden = (id: string) => {
-    setGroups((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, isHidden: !g.isHidden } : g)),
-    );
-  };
 
   const onOpenCreate = () => {
     setCreateErr(null);
@@ -87,12 +73,8 @@ export default function GroupsScreen() {
     setCreateErr(null);
     try {
       const g = await createGroup(token, { name, visibility: "private" });
-
-      // ✅ thêm ngay vào đầu list (tức là “nhóm mình tạo” sẽ hiện liền)
       setGroups((prev) => [g, ...prev]);
-
       setOpenCreate(false);
-      // tuỳ bạn: vào luôn detail nhóm mới
       router.push(`/contact/group/${g.id}` as any);
     } catch (e: any) {
       setCreateErr(e?.message || "Tạo nhóm thất bại");
@@ -103,7 +85,6 @@ export default function GroupsScreen() {
 
   return (
     <Screen style={{ backgroundColor: "white" }} top={8}>
-      {/* Header + Create */}
       <View
         style={{
           paddingHorizontal: 16,
@@ -153,7 +134,7 @@ export default function GroupsScreen() {
           <GroupRow
             item={item}
             memberCount={memberCount(item)}
-            onToggleHidden={() => toggleHidden(item.id)}
+            onOpenTree={() => router.push(`/contact/group/tree/${item.id}` as any)}
             onPress={() => router.push(`/contact/group/${item.id}` as any)}
           />
         )}
@@ -162,15 +143,25 @@ export default function GroupsScreen() {
         )}
       />
 
-      {/* Create Group Modal */}
       <KeyboardSafeModalFrame
         visible={openCreate}
         onRequestClose={() => setOpenCreate(false)}
         padding={18}
         backdropColor="rgba(0,0,0,0.35)"
       >
-            <View style={{ width: "100%", maxHeight: "80%", backgroundColor: "white", borderRadius: 18, padding: 14 }}>
-              <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
+        <View
+          style={{
+            width: "100%",
+            maxHeight: "80%",
+            backgroundColor: "white",
+            borderRadius: 18,
+            padding: 14,
+          }}
+        >
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ flexGrow: 1 }}
+          >
             <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
               Tạo nhóm mới
             </Text>
@@ -179,9 +170,7 @@ export default function GroupsScreen() {
             </Text>
 
             <View style={{ marginTop: 12 }}>
-              <Text
-                style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}
-              >
+              <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
                 Tên nhóm
               </Text>
               <TextInput
@@ -237,8 +226,8 @@ export default function GroupsScreen() {
                 </Text>
               </Pressable>
             </View>
-              </ScrollView>
-            </View>
+          </ScrollView>
+        </View>
       </KeyboardSafeModalFrame>
     </Screen>
   );

@@ -42,6 +42,7 @@ function normalizeProfile(p?: ProfileDraft): ProfileDraft {
     avatarUrl: p?.avatarUrl || "",
     coverUrl: p?.coverUrl || "",
     bio: p?.bio || "",
+    note: p?.note || "",
     gender: p?.gender || "",
     birthday: p?.birthday || "",
     phone: p?.phone || "",
@@ -259,7 +260,7 @@ export default function ProfileMeScreen() {
       <Screen top={0} bottom={0}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator />
-          <Text style={{ marginTop: 8, color: "#6B7280" }}>Dang tai ho so...</Text>
+          <Text style={{ marginTop: 8, color: "#6B7280" }}>Đang tải hồ sơ...</Text>
         </View>
       </Screen>
     );
@@ -396,6 +397,9 @@ export default function ProfileMeScreen() {
               </Text>
               <Text style={{ marginTop: 4, fontSize: 13, color: "#475569", lineHeight: 18 }}>
                 {edit ? (draft.bio?.trim() ? draft.bio : "Chua co tieu su") : vOrDash(me?.profile?.bio)}
+              </Text>
+              <Text style={{ marginTop: 8, fontSize: 13, color: "#64748B", lineHeight: 18 }}>
+                {edit ? (draft.note?.trim() ? draft.note : "Chua co ghi chu") : vOrDash(me?.profile?.note)}
               </Text>
 
               <View style={{ marginTop: 12, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -534,6 +538,13 @@ export default function ProfileMeScreen() {
                       onChange={(t) => setDraft((p) => ({ ...p, bio: t }))}
                       multiline
                     />
+                    <Divider />
+                    <Field
+                      label="Note"
+                      value={draft.note || ""}
+                      onChange={(t) => setDraft((p) => ({ ...p, note: t }))}
+                      multiline
+                    />
                   </Card>
 
                   <View style={{ height: 12 }} />
@@ -651,7 +662,7 @@ export default function ProfileMeScreen() {
                 icon="person-circle-outline"
                 title="Đởi ảnh đại diện"
                 subtitle={
-                  uploading === "avatar" ? "Dang upload..." : "Chon anh va upload"
+                  uploading === "avatar" ? "Đang upload..." : "Chon anh va upload"
                 }
                 onPress={() => {
                   setUploadMenuOpen(false);

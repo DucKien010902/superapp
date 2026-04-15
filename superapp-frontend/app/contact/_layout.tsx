@@ -42,6 +42,14 @@ export default function ContactLayout() {
       onPress: () => router.replace("/contact/groups"),
     },
     {
+      key: "news",
+      label: "Tin tức",
+      icon: "newspaper-outline" as const,
+      activeIcon: "newspaper" as const,
+      active: pathname.startsWith("/contact/news"),
+      onPress: () => router.replace("/contact/news"),
+    },
+    {
       key: "profile",
       label: "Cá nhân",
       icon: "person-circle-outline" as const,
@@ -62,6 +70,8 @@ export default function ContactLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="user/[id]" />
         <Stack.Screen name="group/[id]" />
+        <Stack.Screen name="group/tree/[id]" />
+        <Stack.Screen name="group/relationship/[treeId]" />
         <Stack.Screen name="chat/[conversationId]" />
         <Stack.Screen name="chat/group" />
       </Stack>

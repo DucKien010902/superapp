@@ -13,9 +13,6 @@ export default function ContactTabsLayout() {
   const topPad = 8;
   const bottomInset = Math.max(insets.bottom, 10);
 
-  const tabWhite = "white";
-  const bottomBlack = "#000000";
-
   return (
     <Tabs
       screenOptions={{
@@ -24,10 +21,8 @@ export default function ContactTabsLayout() {
         tabBarInactiveTintColor: "#6B7280",
         tabBarBackground: () => (
           <View style={{ flex: 1 }}>
-            <View style={{ flex: 1, backgroundColor: tabWhite }} />
-            <View
-              style={{ height: bottomInset, backgroundColor: bottomBlack }}
-            />
+            <View style={{ flex: 1, backgroundColor: "white" }} />
+            <View style={{ height: bottomInset, backgroundColor: "#000000" }} />
           </View>
         ),
         tabBarStyle: {
@@ -64,6 +59,19 @@ export default function ContactTabsLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? "people" : "people-outline"}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="news"
+        options={{
+          title: "Tin tức",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "newspaper" : "newspaper-outline"}
               size={size}
               color={color}
             />

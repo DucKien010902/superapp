@@ -6,12 +6,14 @@ export default function GroupRow({
   item,
   memberCount,
   onPress,
-  onToggleHidden,
+  onOpenTree,
+  onDelete,
 }: {
   item: Group;
   memberCount: number;
   onPress?: () => void;
-  onToggleHidden?: () => void;
+  onOpenTree?: () => void;
+  onDelete?: () => void;
 }) {
   return (
     <Pressable
@@ -41,26 +43,47 @@ export default function GroupRow({
           {item.name}
         </Text>
         <Text style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>
-          {memberCount} thành viên {item.isHidden ? "• (Đang ẩn)" : ""}
+          {memberCount} thành viên
         </Text>
       </View>
 
-      <Pressable
-        onPress={onToggleHidden}
-        hitSlop={10}
-        style={{
-          paddingHorizontal: 10,
-          paddingVertical: 8,
-          borderRadius: 999,
-          backgroundColor: "#F3F4F6",
-        }}
-      >
-        <Ionicons
-          name={item.isHidden ? "eye-off-outline" : "eye-outline"}
-          size={18}
-          color="#111827"
-        />
-      </Pressable>
+      {onDelete ? (
+        <Pressable
+          onPress={(event) => {
+            event.stopPropagation();
+            onDelete();
+          }}
+          hitSlop={10}
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 8,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: "#FCA5A5",
+            backgroundColor: "#FEE2E2",
+          }}
+        >
+          <Ionicons name="trash-outline" size={16} color="#B91C1C" />
+        </Pressable>
+      ) : onOpenTree ? (
+        <Pressable
+          onPress={(event) => {
+            event.stopPropagation();
+            onOpenTree();
+          }}
+          hitSlop={10}
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 8,
+            borderRadius: 999,
+            backgroundColor: "#F3F4F6",
+          }}
+        >
+          <Ionicons name="eye-outline" size={18} color="#111827" />
+        </Pressable>
+      ) : (
+        <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+      )}
     </Pressable>
   );
 }

@@ -2,7 +2,10 @@ import type {
   Friend,
   FriendRequestItem,
   Group,
+  GroupRelationshipTree,
+  GroupRelationshipTreeSummary,
   GroupPost,
+  NewsArticle,
   Relationship,
   UserEvaluation,
   UserPublic,
@@ -36,6 +39,8 @@ function mapGroup(g: any): Group {
     avatarUrl: g.avatarUrl || "",
     coverUrl: g.coverUrl || "",
     ownerId: g.ownerId || "",
+    parentGroupId: g.parentGroupId || "",
+    childCount: Number(g.childCount || 0),
     isHidden: !!g.isHidden,
     memberIds: Array.isArray(g.memberIds) ? g.memberIds : [],
     myRole: g.myRole || "member",
@@ -56,6 +61,34 @@ function mapUser(u: any): UserPublic {
       : [],
     files: Array.isArray(u?.files)
       ? u.files.map((item: any) => ({ ...item, id: item.id || item._id }))
+      : [],
+  };
+}
+
+function mapGroupRelationshipTreeSummary(item: any): GroupRelationshipTreeSummary {
+  return {
+    id: item?.id || item?._id || "",
+    groupId: item?.groupId || "",
+    name: item?.name || "Untitled",
+    nodeCount: Number(item?.nodeCount || 0),
+    rootCount: Number(item?.rootCount || 0),
+    createdBy: item?.createdBy || "",
+    createdAt: item?.createdAt || null,
+    updatedAt: item?.updatedAt || null,
+  };
+}
+
+function mapGroupRelationshipTree(item: any): GroupRelationshipTree {
+  return {
+    ...mapGroupRelationshipTreeSummary(item),
+    nodes: Array.isArray(item?.nodes)
+      ? item.nodes.map((node: any) => ({
+          id: node?.id || node?._id || "",
+          userId: node?.userId || "",
+          parentNodeId: node?.parentNodeId || "",
+          orderIndex: Number(node?.orderIndex || 0),
+          user: node?.user ? mapUser(node.user) : null,
+        }))
       : [],
   };
 }
@@ -199,9 +232,26 @@ export async function openGroupChat(token: string, groupId: string) {
   });
 }
 
-export async function fetchGroups(token: string): Promise<Group[]> {
-  const r = await http<{ items: any[] }>("/api/groups", token);
+export async function fetchGroups(
+  token: string,
+  opts?: { parentId?: string }
+): Promise<Group[]> {
+  const qs = new URLSearchParams();
+  if (opts?.parentId?.trim()) qs.set("parentId", opts.parentId.trim());
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const r = await http<{ items: any[] }>(`/api/groups${suffix}`, token);
   return (r.items || []).map(mapGroup);
+}
+
+export async function fetchNewsArticles(
+  token: string,
+  opts?: { limit?: number }
+): Promise<NewsArticle[]> {
+  const qs = new URLSearchParams();
+  if (opts?.limit != null) qs.set("limit", String(opts.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const r = await http<{ items: NewsArticle[] }>(`/api/news${suffix}`, token);
+  return Array.isArray(r.items) ? r.items : [];
 }
 
 export async function fetchGroupById(token: string, id: string): Promise<Group> {
@@ -213,12 +263,13 @@ export async function fetchGroupMembers(
   token: string,
   id: string
 ): Promise<{
-  items: Array<{
+  items: {
     userId: string;
     role: "owner" | "admin" | "member";
     isMuted?: boolean;
     createdAt?: string;
-  }>;
+    user?: UserPublic | null;
+  }[];
   myRole: "owner" | "admin" | "member";
 }> {
   return http(`/api/groups/${id}/members`, token);
@@ -270,6 +321,7 @@ export async function createGroup(
     visibility?: "public" | "private";
     avatarUrl?: string;
     coverUrl?: string;
+    parentGroupId?: string;
   }
 ): Promise<Group> {
   const g = await http<any>("/api/groups", token, {
@@ -282,6 +334,88 @@ export async function createGroup(
 export async function fetchGroupPosts(token: string, groupId: string): Promise<GroupPost[]> {
   const r = await http<{ items: GroupPost[] }>(`/api/groups/${groupId}/posts`, token);
   return r.items || [];
+}
+
+export async function fetchGroupRelationshipTrees(
+  token: string,
+  groupId: string
+): Promise<GroupRelationshipTreeSummary[]> {
+  const r = await http<{ items: GroupRelationshipTreeSummary[] }>(
+    `/api/groups/${groupId}/relationship-trees`,
+    token
+  );
+  return Array.isArray(r.items) ? r.items.map(mapGroupRelationshipTreeSummary) : [];
+}
+
+export async function createGroupRelationshipTree(
+  token: string,
+  groupId: string,
+  payload: { name: string }
+): Promise<GroupRelationshipTreeSummary> {
+  const r = await http<any>(`/api/groups/${groupId}/relationship-trees`, token, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return mapGroupRelationshipTreeSummary(r);
+}
+
+export async function fetchGroupRelationshipTreeById(
+  token: string,
+  groupId: string,
+  treeId: string
+): Promise<GroupRelationshipTree> {
+  const r = await http<any>(`/api/groups/${groupId}/relationship-trees/${treeId}`, token);
+  return mapGroupRelationshipTree(r);
+}
+
+export async function renameGroupRelationshipTree(
+  token: string,
+  groupId: string,
+  treeId: string,
+  payload: { name: string }
+): Promise<GroupRelationshipTreeSummary> {
+  const r = await http<any>(`/api/groups/${groupId}/relationship-trees/${treeId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return mapGroupRelationshipTreeSummary(r);
+}
+
+export async function deleteGroupRelationshipTree(
+  token: string,
+  groupId: string,
+  treeId: string
+): Promise<{ ok: true }> {
+  return http(`/api/groups/${groupId}/relationship-trees/${treeId}`, token, {
+    method: "DELETE",
+  });
+}
+
+export async function addGroupRelationshipNode(
+  token: string,
+  groupId: string,
+  treeId: string,
+  payload: { userId: string; parentNodeId?: string }
+): Promise<GroupRelationshipTree> {
+  const r = await http<any>(`/api/groups/${groupId}/relationship-trees/${treeId}/nodes`, token, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return mapGroupRelationshipTree(r);
+}
+
+export async function deleteGroupRelationshipNode(
+  token: string,
+  groupId: string,
+  treeId: string,
+  nodeId: string
+): Promise<GroupRelationshipTree> {
+  const r = await http<any>(
+    `/api/groups/${groupId}/relationship-trees/${treeId}/nodes/${nodeId}`,
+    token,
+    { method: "DELETE" }
+  );
+  return mapGroupRelationshipTree(r);
 }
 
 export async function createGroupPost(

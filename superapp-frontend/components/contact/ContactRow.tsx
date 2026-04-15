@@ -18,6 +18,13 @@ export default function ContactRow({
   onPress?: () => void;
 }) {
   const hasAvatar = !!item.avatar && item.avatar.trim().length > 0;
+  const secondaryLines = (item.secondaryLines || [])
+    .map((line) => String(line || "").trim())
+    .filter(Boolean);
+
+  if (secondaryLines.length === 0 && item.phone?.trim()) {
+    secondaryLines.push(item.phone.trim());
+  }
 
   return (
     <Pressable
@@ -28,7 +35,6 @@ export default function ContactRow({
         paddingVertical: 12,
       }}
     >
-      {/* Avatar */}
       <View
         style={{
           width: 44,
@@ -38,7 +44,7 @@ export default function ContactRow({
           alignItems: "center",
           justifyContent: "center",
           marginRight: 12,
-          overflow: "hidden", // ✅ để ảnh bo góc
+          overflow: "hidden",
           position: "relative",
         }}
       >
@@ -54,7 +60,6 @@ export default function ContactRow({
           </Text>
         )}
 
-        {/* online dot */}
         {item.isOnline ? (
           <View
             style={{
@@ -76,9 +81,15 @@ export default function ContactRow({
         <Text style={{ fontSize: 15, fontWeight: "700", color: "#111827" }}>
           {item.name}
         </Text>
-        <Text style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>
-          {item.phone ?? "—"}
-        </Text>
+        {secondaryLines.map((line, index) => (
+          <Text
+            key={`${item.id}-${index}-${line}`}
+            style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}
+            numberOfLines={1}
+          >
+            {line}
+          </Text>
+        ))}
       </View>
     </Pressable>
   );

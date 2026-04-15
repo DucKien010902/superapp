@@ -58,6 +58,7 @@ function normalizeProfile(p?: ProfileDraft): ProfileDraft {
     avatarUrl: p?.avatarUrl || "",
     coverUrl: p?.coverUrl || DEFAULT_COVER_URL,
     bio: p?.bio || "",
+    note: p?.note || "",
     gender: p?.gender || "",
     birthday: p?.birthday || "",
     phone: p?.phone || "",
@@ -184,6 +185,7 @@ export default function UserProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [saveNoticeTitle, setSaveNoticeTitle] = useState("Lưu thành công");
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [saveNoticeProgress, setSaveNoticeProgress] = useState(1);
 
@@ -302,6 +304,7 @@ export default function UserProfileScreen() {
       setUser(updated);
       setProfileDraft(normalizeProfile(updated.profile));
       setEditProfileOpen(false);
+      setSaveNoticeTitle("Lưu thành công");
       setSaveNotice("Đã lưu hồ sơ thành công.");
     } catch (e: any) {
       Alert.alert("Lỗi", e?.message || "Lưu thất bại");
@@ -325,6 +328,7 @@ export default function UserProfileScreen() {
       setUser(updated);
       setEvalDraft(normalizeEvaluation(updated.evaluation));
       setEvalOpen(false);
+      setSaveNoticeTitle("Lưu thành công");
       setSaveNotice("Đã lưu đánh giá thành công.");
     } catch (e: any) {
       Alert.alert("Lỗi", e?.message || "Lưu đánh giá thất bại");
@@ -348,9 +352,11 @@ export default function UserProfileScreen() {
               if(!token || !id) return;
               setBusy(true); // Tận dụng state busy để disable màn hình nếu cần
               await adminDeleteUser(token, String(id));
-              Alert.alert("Thành công", "Đã xóa người dùng", [
-                { text: "OK", onPress: () => router.back() }
-              ]);
+              setSaveNoticeTitle("Xóa thành công");
+              setSaveNotice("Đã xóa người dùng.");
+              setTimeout(() => {
+                router.replace("/contact/contacts" as any);
+              }, 900);
             } catch (e: any) {
               Alert.alert("Lỗi", e?.message || "Không thể xóa người dùng");
             } finally {
@@ -647,6 +653,8 @@ export default function UserProfileScreen() {
                 <InfoRow icon="school-outline" label="Học vấn" value={vOrDash(user?.profile?.education)} />
                 <Divider />
                 <InfoRow icon="navigate-outline" label="Địa điểm" value={formatLocation(user?.profile?.location)} />
+                <Divider />
+                <InfoRow icon="document-text-outline" label="Ghi chú" value={vOrDash(user?.profile?.note)} />
               </Card>
 
               <View style={{ height: 12 }} />
@@ -860,7 +868,7 @@ export default function UserProfileScreen() {
 
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 16, fontWeight: "900", color: "#14532D" }}>
-                    Lưu thành công
+                    {saveNoticeTitle}
                   </Text>
                   <Text style={{ marginTop: 4, fontSize: 13, color: "#166534", lineHeight: 19 }}>
                     {saveNotice}
@@ -932,6 +940,8 @@ export default function UserProfileScreen() {
                     <Field label="Username" value={profileDraft.username || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, username: t }))} />
                     <Divider />
                     <Field label="Tiểu sử" value={profileDraft.bio || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, bio: t }))} multiline />
+                    <Divider />
+                    <Field label="Ghi chú" value={profileDraft.note || ""} onChange={(t:any) => setProfileDraft((p) => ({ ...p, note: t }))} multiline />
                   </Card>
 
                   <View style={{ height: 12 }} />
