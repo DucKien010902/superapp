@@ -36,6 +36,7 @@ const GroupSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     visibility: { type: String, enum: ["public", "private"], default: "private" },
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    parentGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "Group", default: null, index: true },
     isHidden: { type: Boolean, default: false },
     images: { type: [GroupImageSchema], default: [] },
     documents: { type: [GroupDocumentSchema], default: [] },

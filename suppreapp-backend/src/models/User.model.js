@@ -7,6 +7,7 @@ const ProfileSchema = new mongoose.Schema(
     avatarUrl: { type: String, default: "" },
     coverUrl: { type: String, default: "" },
     bio: { type: String, default: "" },
+    note: { type: String, default: "" },
     gender: { type: String, enum: ["male", "female", "other", ""], default: "" },
     birthday: { type: String, default: "" },
     phone: { type: String, default: "" },

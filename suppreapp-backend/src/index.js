@@ -12,10 +12,11 @@ import messagesRoutes from "./routes/messages.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import versionRoutes from "./routes/version.routes.js";
 import mediaRoutes from "./routes/media.routes.js";
+import newsRoutes from "./routes/news.routes.js";
 import { initMinioBucket } from "./minio.js";
+import { startNewsSyncScheduler } from "./services/news.service.js";
 
 import { requireAuth } from "./middlewares/auth.middleware.js";
-import { browserGate } from "./middlewares/browserGate.middleware.js";
 
 dotenv.config();
 
@@ -25,9 +26,9 @@ app.use(morgan("dev"));
 app.use(express.json({ limit: "2mb" }));
 
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
-.split(",")
-.map((s) => s.trim())
-.filter(Boolean);
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 const corsOptions = {
   origin(origin, cb) {
@@ -45,35 +46,33 @@ app.options("*", cors(corsOptions));
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
-// ✅ public routes
 app.use("/api/auth", authRoutes);
-
-// ✅ protected routes: chống request không phải browser (mutation) + yêu cầu token
 app.use("/api/users", requireAuth, usersRoutes);
-
 app.use("/api/friends", requireAuth, friendsRoutes);
 app.use("/api/groups", requireAuth, groups2Routes);
 app.use("/api/messages", requireAuth, messagesRoutes);
 app.use("/api/admin", requireAuth, adminRoutes);
-app.use('/api/version',requireAuth, versionRoutes)
+app.use("/api/version", requireAuth, versionRoutes);
 app.use("/api/media", requireAuth, mediaRoutes);
+app.use("/api/news", requireAuth, newsRoutes);
 
-// error handler
 app.use((err, req, res, next) => {
-  console.error("❌", err);
-  res.status(err?.statusCode || 500).json({ message: err?.message || "Internal Server Error" });
+  console.error("ERROR", err);
+  res
+    .status(err?.statusCode || 500)
+    .json({ message: err?.message || "Internal Server Error" });
 });
 
 const PORT = process.env.PORT || 4000;
-const HOST = '0.0.0.0'; // QUAN TRỌNG: Lắng nghe trên mọi interface mạng
+const HOST = "0.0.0.0";
 
 connectDB(process.env.MONGO_URI)
   .then(async () => {
     await initMinioBucket();
-    // Thêm tham số HOST vào giữa PORT và callback
-    app.listen(PORT, HOST, () =>
-      console.log(`✅ API listening on http://${HOST}:${PORT}`)
-    );
+    await startNewsSyncScheduler();
+    app.listen(PORT, HOST, () => {
+      console.log(`API listening on http://${HOST}:${PORT}`);
+    });
   })
   .catch((e) => {
     console.error("Mongo connect error:", e);
